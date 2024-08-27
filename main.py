@@ -9,48 +9,11 @@ from ta import add_all_ta_features
 from ta.utils import dropna
 import requests
 import math
+import time
 
 # Parametry zarządzania ryzykiem
-MAX_RISK_PER_TRADE = 0.1  # 1% kapitału na transakcję
-MAX_RISK_CAPITAL = 0.2  # 20% kapitału
-RISK_REWARD_RATIO = 2.0  # Stosunek zysku do ryzyka
-
-
-def fetch_intraday_data(symbol, api_key):
-    url = 'https://www.alphavantage.co/query'
-    params = {
-        'function': 'TIME_SERIES_INTRADAY',
-        'symbol': symbol,
-        'interval': '5min',
-        'apikey': api_key
-    }
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-
-        if 'Time Series (5min)' not in data:
-            if 'Error Message' in data:
-                raise ValueError(f"Błąd API: {data['Error Message']}")
-            if 'Note' in data:
-                raise ValueError(f"Limit zapytań przekroczony: {data['Note']}")
-            raise ValueError("Odpowiedź API nie zawiera danych o czasie")
-
-        time_series_data = data['Time Series (5min)']
-
-        # Konwersja danych do DataFrame
-        df = pd.DataFrame.from_dict(time_series_data, orient='index')
-        df.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
-        df = df.apply(pd.to_numeric)
-
-        # Zamiana indeksu na typ daty i czasu
-        df.index = pd.to_datetime(df.index)
-
-        return df
-    except Exception as e:
-        print(f"Problem z pobieraniem danych: {e}")
-        return pd.DataFrame()
-
+MAX_RISK_PER_TRADE = 0.01  # 1% kapitału na transakcję
+RISK_REWARD_RATIO = 2.0    # Stosunek zysku do ryzyka
 
 def fetch_historical_data(symbol, timeframe=mt5.TIMEFRAME_M1, bars=1000):
     try:
@@ -68,7 +31,6 @@ def fetch_historical_data(symbol, timeframe=mt5.TIMEFRAME_M1, bars=1000):
         print(f"Problem z pobieraniem danych historycznych: {e}")
         return pd.DataFrame()
 
-
 def extract_features(data):
     try:
         if data.empty:
@@ -79,10 +41,8 @@ def extract_features(data):
         data = add_all_ta_features(
             data, open="open", high="high", low="low", close="close", volume="tick_volume", fillna=True)
 
-        # Dodanie kolumny 'Target'
         data['Target'] = np.where(data['close'].shift(-1) > data['close'], 1, 0)
 
-        # Sprawdzenie, czy wszystkie kolumny są obecne
         required_columns = ['open', 'high', 'low', 'close', 'tick_volume', 'Target']
         missing_columns = [col for col in required_columns if col not in data.columns]
         if missing_columns:
@@ -93,7 +53,6 @@ def extract_features(data):
     except Exception as e:
         print(f"Problem z ekstrakcją cech: {e}")
         return pd.DataFrame()
-
 
 def train_neural_network(data):
     try:
@@ -142,7 +101,6 @@ def train_neural_network(data):
         print(f"Problem z trenowaniem modelu: {e}")
         return None, None
 
-
 def calculate_position_size(account_balance, symbol):
     try:
         symbol_info = mt5.symbol_info(symbol)
@@ -177,30 +135,64 @@ def calculate_position_size(account_balance, symbol):
         print(f"Problem z obliczaniem wielkości pozycji: {e}")
         return 0
 
-
-def execute_trade(model_prediction, current_price, account_balance, symbol):
+def execute_trade(model_prediction, symbol):
     try:
+        symbol_info = mt5.symbol_info(symbol)
+        if symbol_info is None:
+            print("Nie można pobrać informacji o symbolu.")
+            return
+
+        punkt = symbol_info.point
+        digits = symbol_info.digits
+
+        if punkt is None:
+            print("Brak informacji o punktach dla symbolu.")
+            return
+
+        # Pobierz aktualne ceny
+        tick = mt5.symbol_info_tick(symbol)
+        if tick is None:
+            print("Nie można pobrać aktualnych cen.")
+            return
+
+        current_price = tick.ask if model_prediction == 1 else tick.bid
+
+        # Obliczanie wartości stop loss i take profit w punktach
+        stop_loss_value = 0.05 * current_price
+        take_profit_value = stop_loss_value * RISK_REWARD_RATIO
+
+        if model_prediction == 1:  # BUY
+            stop_loss_price = current_price - stop_loss_value
+            take_profit_price = current_price + take_profit_value
+            order_type = mt5.ORDER_TYPE_BUY
+        else:  # SELL
+            stop_loss_price = current_price + stop_loss_value
+            take_profit_price = current_price - take_profit_value
+            order_type = mt5.ORDER_TYPE_SELL
+
+        stop_loss_price = round(stop_loss_price, digits)
+        take_profit_price = round(take_profit_price, digits)
+
+        if stop_loss_price <= 0 or take_profit_price <= 0:
+            print("Błąd: Niepoprawne ceny SL/TP.")
+            return
+
+        account_info = mt5.account_info()
+        if account_info is None:
+            print("Nie można pobrać informacji o koncie.")
+            return
+
+        account_balance = account_info.balance
         wielkość_pozycji = calculate_position_size(account_balance, symbol)
         if wielkość_pozycji <= 0:
             print("Wielkość pozycji jest równa 0, transakcja nie zostanie przeprowadzona.")
             return
 
-        punkt = mt5.symbol_info(symbol).point
-        if punkt is None:
-            print("Brak informacji o punktach dla symbolu.")
-            return
-
-        stop_loss_value = 0.05 * wielkość_pozycji * punkt
-        take_profit_value = 0.10 * wielkość_pozycji * punkt
-
-        stop_loss_price = current_price - stop_loss_value if model_prediction == 1 else current_price + stop_loss_value
-        take_profit_price = current_price + take_profit_value if model_prediction == 1 else current_price - take_profit_value
-
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
             "volume": wielkość_pozycji,
-            "type": mt5.ORDER_TYPE_BUY if model_prediction == 1 else mt5.ORDER_TYPE_SELL,
+            "type": order_type,
             "price": current_price,
             "sl": stop_loss_price,
             "tp": take_profit_price,
@@ -212,32 +204,25 @@ def execute_trade(model_prediction, current_price, account_balance, symbol):
 
         result = mt5.order_send(request)
         if result.retcode != mt5.TRADE_RETCODE_DONE:
-            print(f"Błąd wykonania transakcji: {result.retcode}, {result.comment}")
+            print(f"Błąd wykonania transakcji: {result.retcode}, {mt5.last_error()}")
         else:
             print(f"Transakcja przeprowadzona pomyślnie, ID pozycji: {result.order}")
 
     except Exception as e:
-        print(f"Problem z wykonaniem transakcji: {e}")
-
+        print(f"Problem z realizacją transakcji: {e}")
 
 def main():
-    symbol = "EURUSD"
-
     if not mt5.initialize():
-        print(f"Inicjalizacja MT5 nie powiodła się, kod błędu: {mt5.last_error()}")
+        print("Inicjalizacja MT5 nie powiodła się, kod błędu:", mt5.last_error())
         return
 
+    symbol = "EURUSD"
     data = fetch_historical_data(symbol)
     data_with_features = extract_features(data)
-
-    if data_with_features.empty:
-        print("Brak danych do trenowania modelu.")
-        mt5.shutdown()
-        return
-
     model, scaler = train_neural_network(data_with_features)
+
     if model is None or scaler is None:
-        print("Model lub scaler nie został wytrenowany.")
+        print("Błąd: Model lub skalowanie nie zostały poprawnie załadowane.")
         mt5.shutdown()
         return
 
@@ -248,17 +233,27 @@ def main():
         return
 
     account_balance = account_info.balance
-    last_price = mt5.symbol_info_tick(symbol).ask
 
+    # Pobierz aktualne ceny
+    tick = mt5.symbol_info_tick(symbol)
+    if tick is None:
+        print("Nie można pobrać aktualnych cen.")
+        mt5.shutdown()
+        return
+
+    last_price = tick.ask
+
+    # Przygotuj dane do predykcji
     latest_data = data_with_features.iloc[-1:]
     latest_data_scaled = scaler.transform(latest_data.drop('Target', axis=1))
 
+    # Wykonaj predykcję
     model_prediction = model.predict(latest_data_scaled)[0]
 
-    execute_trade(model_prediction, last_price, account_balance, symbol)
+    # Wykonaj transakcję
+    execute_trade(model_prediction, symbol)
 
     mt5.shutdown()
-
 
 if __name__ == "__main__":
     main()
