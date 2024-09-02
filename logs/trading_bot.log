@@ -199,3 +199,16 @@ AttributeError: 'SimpleNN' object has no attribute 'predict'
 2024-09-02 18:57:45,243 - INFO - Dok³adnoœæ modelu: 55.22%
 2024-09-02 18:57:45,249 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
 2024-09-02 18:57:45,316 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2805461544
+2024-09-02 18:59:47,893 - INFO - Epoka [1/10], Strata: 0.6990
+2024-09-02 18:59:47,908 - INFO - Epoka [2/10], Strata: 0.6931
+2024-09-02 18:59:47,923 - INFO - Epoka [3/10], Strata: 0.6892
+2024-09-02 18:59:47,939 - INFO - Epoka [4/10], Strata: 0.6897
+2024-09-02 18:59:47,953 - INFO - Epoka [5/10], Strata: 0.6904
+2024-09-02 18:59:47,968 - INFO - Epoka [6/10], Strata: 0.6902
+2024-09-02 18:59:47,984 - INFO - Epoka [7/10], Strata: 0.6899
+2024-09-02 18:59:47,998 - INFO - Epoka [8/10], Strata: 0.6897
+2024-09-02 18:59:48,015 - INFO - Epoka [9/10], Strata: 0.6897
+2024-09-02 18:59:48,029 - INFO - Epoka [10/10], Strata: 0.6895
+2024-09-02 18:59:48,045 - INFO - Dok³adnoœæ modelu: 54.73%
+2024-09-02 18:59:48,047 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
+2024-09-02 18:59:48,101 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2805467063

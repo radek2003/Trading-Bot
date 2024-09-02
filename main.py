@@ -1,6 +1,5 @@
 import MetaTrader5 as mt5
 import logging
-from config.config import configure_cpu
 from src.data_fetcher import fetch_historical_data
 from src.model_methods import train_model
 from src.strategy import apply_strategy, calculate_moving_averages, calculate_macd
@@ -9,7 +8,7 @@ import torch
 
 def main():
     """Główna funkcja programu."""
-    configure_cpu()
+
 
     if not mt5.initialize():
         logging.error(f"Inicjalizacja MT5 nie powiodła się, kod błędu: {mt5.last_error()}")

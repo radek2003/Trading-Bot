@@ -1,5 +1,4 @@
 import logging
-import tensorflow as tf
 
 # Parametry. logi i konfiguracja CPU
 
@@ -15,12 +14,4 @@ logging.basicConfig(
     ]
 )
 
-def configure_cpu():
-    physical_devices = tf.config.list_physical_devices('CPU')
-    if physical_devices:
-        logging.info(f"Znaleziono CPU: {physical_devices}")
-
-    num_threads = 6
-    tf.config.threading.set_intra_op_parallelism_threads(num_threads)
-    tf.config.threading.set_inter_op_parallelism_threads(num_threads)
 
