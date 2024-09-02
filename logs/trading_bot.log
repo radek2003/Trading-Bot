@@ -125,3 +125,77 @@ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\trenowanie modelu d
 2024-09-02 16:55:56,528 - INFO - Dok³adnoœæ modelu: 48.26%
 2024-09-02 16:55:56,691 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pkl
 2024-09-02 16:55:56,799 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2805163609
+2024-09-02 18:51:57,713 - INFO - Znaleziono CPU: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU')]
+2024-09-02 18:52:03,812 - INFO - Dok³adnoœæ modelu: 55.22%
+2024-09-02 18:52:03,818 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pkl
+2024-09-02 18:52:03,828 - ERROR - Problem z zastosowaniem strategii.
+Traceback (most recent call last):
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\src\strategy.py", line 21, in apply_strategy
+    predictions = model.predict(X_new)
+                  ^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\torch\nn\modules\module.py", line 1729, in __getattr__
+    raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+AttributeError: 'SimpleNN' object has no attribute 'predict'
+2024-09-02 18:52:03,846 - ERROR - Brak predykcji z modelu.
+2024-09-02 18:53:46,543 - INFO - Znaleziono CPU: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU')]
+2024-09-02 18:53:48,227 - INFO - Epoka [1/10], Strata: 0.7436
+2024-09-02 18:53:48,244 - INFO - Epoka [2/10], Strata: 0.7274
+2024-09-02 18:53:48,259 - INFO - Epoka [3/10], Strata: 0.7217
+2024-09-02 18:53:48,276 - INFO - Epoka [4/10], Strata: 0.7214
+2024-09-02 18:53:48,290 - INFO - Epoka [5/10], Strata: 0.7214
+2024-09-02 18:53:48,307 - INFO - Epoka [6/10], Strata: 0.7203
+2024-09-02 18:53:48,322 - INFO - Epoka [7/10], Strata: 0.7191
+2024-09-02 18:53:48,337 - INFO - Epoka [8/10], Strata: 0.7183
+2024-09-02 18:53:48,352 - INFO - Epoka [9/10], Strata: 0.7175
+2024-09-02 18:53:48,368 - INFO - Epoka [10/10], Strata: 0.7167
+2024-09-02 18:53:48,415 - INFO - Dok³adnoœæ modelu: 53.23%
+2024-09-02 18:53:48,420 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pkl
+2024-09-02 18:53:48,427 - ERROR - Problem z zastosowaniem strategii.
+Traceback (most recent call last):
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\src\strategy.py", line 21, in apply_strategy
+    predictions = model.predict(X_new)
+                  ^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\torch\nn\modules\module.py", line 1729, in __getattr__
+    raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+AttributeError: 'SimpleNN' object has no attribute 'predict'
+2024-09-02 18:53:48,448 - ERROR - Brak predykcji z modelu.
+2024-09-02 18:54:55,499 - INFO - Znaleziono CPU: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU')]
+2024-09-02 18:54:56,768 - INFO - Epoka [1/10], Strata: 0.6995
+2024-09-02 18:54:56,784 - INFO - Epoka [2/10], Strata: 0.6880
+2024-09-02 18:54:56,800 - INFO - Epoka [3/10], Strata: 0.6920
+2024-09-02 18:54:56,816 - INFO - Epoka [4/10], Strata: 0.6973
+2024-09-02 18:54:56,831 - INFO - Epoka [5/10], Strata: 0.6997
+2024-09-02 18:54:56,847 - INFO - Epoka [6/10], Strata: 0.7006
+2024-09-02 18:54:56,863 - INFO - Epoka [7/10], Strata: 0.7015
+2024-09-02 18:54:56,878 - INFO - Epoka [8/10], Strata: 0.7024
+2024-09-02 18:54:56,893 - INFO - Epoka [9/10], Strata: 0.7032
+2024-09-02 18:54:56,909 - INFO - Epoka [10/10], Strata: 0.7037
+2024-09-02 18:54:56,927 - INFO - Dok³adnoœæ modelu: 52.24%
+2024-09-02 18:54:56,929 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pkl
+2024-09-02 18:56:51,471 - INFO - Znaleziono CPU: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU')]
+2024-09-02 18:56:52,640 - INFO - Epoka [1/10], Strata: 0.7347
+2024-09-02 18:56:52,657 - INFO - Epoka [2/10], Strata: 0.7253
+2024-09-02 18:56:52,674 - INFO - Epoka [3/10], Strata: 0.7209
+2024-09-02 18:56:52,689 - INFO - Epoka [4/10], Strata: 0.7205
+2024-09-02 18:56:52,704 - INFO - Epoka [5/10], Strata: 0.7208
+2024-09-02 18:56:52,721 - INFO - Epoka [6/10], Strata: 0.7204
+2024-09-02 18:56:52,736 - INFO - Epoka [7/10], Strata: 0.7195
+2024-09-02 18:56:52,752 - INFO - Epoka [8/10], Strata: 0.7189
+2024-09-02 18:56:52,768 - INFO - Epoka [9/10], Strata: 0.7184
+2024-09-02 18:56:52,783 - INFO - Epoka [10/10], Strata: 0.7179
+2024-09-02 18:56:52,801 - INFO - Dok³adnoœæ modelu: 53.73%
+2024-09-02 18:56:52,803 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pkl
+2024-09-02 18:57:43,896 - INFO - Znaleziono CPU: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU')]
+2024-09-02 18:57:45,090 - INFO - Epoka [1/10], Strata: 0.7200
+2024-09-02 18:57:45,106 - INFO - Epoka [2/10], Strata: 0.7108
+2024-09-02 18:57:45,122 - INFO - Epoka [3/10], Strata: 0.7117
+2024-09-02 18:57:45,137 - INFO - Epoka [4/10], Strata: 0.7135
+2024-09-02 18:57:45,152 - INFO - Epoka [5/10], Strata: 0.7132
+2024-09-02 18:57:45,167 - INFO - Epoka [6/10], Strata: 0.7123
+2024-09-02 18:57:45,182 - INFO - Epoka [7/10], Strata: 0.7116
+2024-09-02 18:57:45,196 - INFO - Epoka [8/10], Strata: 0.7109
+2024-09-02 18:57:45,211 - INFO - Epoka [9/10], Strata: 0.7103
+2024-09-02 18:57:45,226 - INFO - Epoka [10/10], Strata: 0.7096
+2024-09-02 18:57:45,243 - INFO - Dok³adnoœæ modelu: 55.22%
+2024-09-02 18:57:45,249 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
+2024-09-02 18:57:45,316 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2805461544

@@ -1,39 +1,52 @@
 import os
 import joblib
 import logging
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.metrics import accuracy_score
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 
+# Definicja sieci neuronowej
+class SimpleNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(SimpleNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, output_size)
+        self.relu = nn.ReLU()
 
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
-# Wszystkie metody/funkcje dotyczące modelu
-def save_model(model, folder_path, filename='best_model.pkl'):
+def save_model(model, folder_path, filename='best_model.pth'):
     """Zapisuje model do pliku w określonym folderze."""
     try:
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         file_path = os.path.join(folder_path, filename)
-        joblib.dump(model, file_path)
+        torch.save(model.state_dict(), file_path)
         logging.info(f"Model zapisany jako {file_path}")
     except Exception as e:
         logging.exception("Problem z zapisywaniem modelu.")
 
-def load_model(folder_path, filename='best_model.pkl'):
+def load_model(model, folder_path, filename='best_model.pth'):
     """Ładuje model z pliku z określonego folderu."""
     try:
         file_path = os.path.join(folder_path, filename)
-        model = joblib.load(file_path)
+        model.load_state_dict(torch.load(file_path))
+        model.eval()
         logging.info(f"Model załadowany z {file_path}")
         return model
     except Exception as e:
         logging.exception("Problem z ładowaniem modelu.")
         return None
 
-def train_model(data, folder_path='models', model_filename='best_model.pkl'):
-    """Trenuje model klasyfikacji z użyciem RandomizedSearchCV i zapisuje najlepszy model."""
+def train_model(data, folder_path='models', model_filename='best_model.pth'):
+    """Trenuje model klasyfikacji z użyciem PyTorch i zapisuje najlepszy model."""
     try:
         if data.empty:
             logging.error("Brak danych do trenowania modelu.")
@@ -55,38 +68,58 @@ def train_model(data, folder_path='models', model_filename='best_model.pkl'):
 
         X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_resampled, test_size=0.2, random_state=42)
 
-        # Ładowanie istniejącego modelu, jeśli dostępny
-        existing_model = load_model(folder_path, model_filename)
+        # Przygotowanie danych do PyTorch
+        X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+        y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+        X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+        y_test_tensor = torch.tensor(y_test, dtype=torch.long)
 
-        if existing_model:
-            model = existing_model
-            logging.info("Kontynuowanie treningu na podstawie istniejącego modelu.")
-        else:
-            model = RandomForestClassifier(random_state=42)
+        # Inicjalizacja modelu
+        input_size = X_train.shape[1]
+        hidden_size = 64
+        output_size = len(np.unique(y_train))
+        model = SimpleNN(input_size, hidden_size, output_size)
 
-        param_dist = {
-            'n_estimators': [50, 100, 150, 200, 250, 300, 400, 500],
-            'max_depth': [None, 10, 20, 30, 40, 50, 60, 70, 80],
-            'min_samples_split': [2, 5, 10, 15, 20, 25, 30],
-            'min_samples_leaf': [1, 2, 4, 6, 8, 10, 12],
-            'max_features': ['sqrt', 'log2', None],
-            'bootstrap': [True, False]
-        }
+        # Sprawdzenie dostępności GPU
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model.to(device)
 
-        random_search = RandomizedSearchCV(estimator=model, param_distributions=param_dist, n_iter=10, cv=5,
-                                           scoring='accuracy', random_state=42, error_score='raise')
-        random_search.fit(X_train, y_train)
+        # Optymalizator i funkcja strat
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-        best_model = random_search.best_estimator_
-        y_pred = best_model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        logging.info(f"Najlepsze parametry: {random_search.best_params_}")
-        logging.info(f"Dokładność modelu: {accuracy:.2%}")
+        # Trening modelu
+        num_epochs = 10
+        batch_size = 64
 
-        # Zapisz najlepszy model
-        save_model(best_model, folder_path, model_filename)
+        for epoch in range(num_epochs):
+            model.train()
+            for i in range(0, len(X_train_tensor), batch_size):
+                batch_X = X_train_tensor[i:i + batch_size].to(device)
+                batch_y = y_train_tensor[i:i + batch_size].to(device)
 
-        return best_model, scaler
+                optimizer.zero_grad()
+                outputs = model(batch_X)
+                loss = criterion(outputs, batch_y)
+                loss.backward()
+                optimizer.step()
+
+            logging.info(f"Epoka [{epoch+1}/{num_epochs}], Strata: {loss.item():.4f}")
+
+        # Testowanie modelu
+        model.eval()
+        with torch.no_grad():
+            X_test_tensor = X_test_tensor.to(device)
+            y_test_tensor = y_test_tensor.to(device)
+            y_pred = model(X_test_tensor)
+            _, predicted = torch.max(y_pred, 1)
+            accuracy = (predicted == y_test_tensor).sum().item() / len(y_test_tensor)
+            logging.info(f"Dokładność modelu: {accuracy:.2%}")
+
+        # Zapisz model
+        save_model(model, folder_path, model_filename)
+
+        return model, scaler
 
     except Exception as e:
         logging.error(f"Problem z trenowaniem modelu: {e}")

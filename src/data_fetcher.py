@@ -2,6 +2,7 @@ import MetaTrader5 as mt5
 import pandas as pd
 import logging
 
+
 # Pobieranie danych historycznych z mt5
 def fetch_historical_data(symbol, timeframe=mt5.TIMEFRAME_M15, bars=1000):
     try:
