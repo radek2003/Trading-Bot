@@ -4,6 +4,7 @@ from src.risk_management import calculate_position_size
 from config.config import RISK_REWARD_RATIO
 
 # Otwieranie pozycji, handlowanie itp.
+print(".")
 
 def execute_trade(model_prediction, symbol):
     """Wykonuje transakcję na podstawie predykcji modelu."""

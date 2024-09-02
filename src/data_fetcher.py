@@ -18,3 +18,5 @@ def fetch_historical_data(symbol, timeframe=mt5.TIMEFRAME_M15, bars=1000):
     except Exception as e:
         logging.exception("Problem z pobieraniem danych historycznych.")
         return pd.DataFrame()
+
+print(".")

@@ -7,6 +7,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 
+
+print(".")
 # Wszystkie metody/funkcje dotyczące modelu
 def save_model(model, folder_path, filename='best_model.pkl'):
     """Zapisuje model do pliku w określonym folderze."""

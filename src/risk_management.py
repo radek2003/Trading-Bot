@@ -4,7 +4,7 @@ import logging
 from config.config import MAX_RISK_PER_TRADE
 
 # Zarządzanie ryzykiem
-
+print(".")
 def calculate_position_size(account_balance, symbol):
     """Oblicza rozmiar pozycji na podstawie kapitału i symbolu."""
     try:

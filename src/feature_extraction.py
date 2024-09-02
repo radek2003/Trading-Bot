@@ -52,3 +52,5 @@ def calculate_macd(df):
     df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
     df['MACD_Histogram'] = df['MACD'] - df['MACD_Signal']
     return df
+
+print(".")

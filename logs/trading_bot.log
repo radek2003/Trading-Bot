@@ -118,3 +118,10 @@ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\trenowanie modelu d
 2024-08-29 16:25:32,792 - INFO - Dok³adnoœæ modelu: 46.50%
 2024-08-29 16:25:32,808 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pkl
 2024-08-29 16:25:32,822 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2024-09-02 16:55:20,125 - INFO - Znaleziono CPU: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU')]
+2024-09-02 16:55:20,211 - INFO - Model za³adowany z C:\trenowanie modelu do bota\best_model.pkl
+2024-09-02 16:55:20,212 - INFO - Kontynuowanie treningu na podstawie istniej¹cego modelu.
+2024-09-02 16:55:56,528 - INFO - Najlepsze parametry: {'n_estimators': 500, 'min_samples_split': 15, 'min_samples_leaf': 10, 'max_features': 'sqrt', 'max_depth': 30, 'bootstrap': False}
+2024-09-02 16:55:56,528 - INFO - Dok³adnoœæ modelu: 48.26%
+2024-09-02 16:55:56,691 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pkl
+2024-09-02 16:55:56,799 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2805163609

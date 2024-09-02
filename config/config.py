@@ -23,3 +23,5 @@ def configure_cpu():
     num_threads = 6
     tf.config.threading.set_intra_op_parallelism_threads(num_threads)
     tf.config.threading.set_inter_op_parallelism_threads(num_threads)
+
+print(".")
