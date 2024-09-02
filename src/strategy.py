@@ -24,4 +24,3 @@ def apply_strategy(model, scaler, new_data, strategy_type='MACD'):
 
     except Exception as e:
         logging.exception("Problem z zastosowaniem strategii.")
-print(".")

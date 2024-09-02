@@ -67,7 +67,7 @@ def main():
 
     mt5.shutdown()
 
-print(".")
+
 
 if __name__ == "__main__":
     main()
