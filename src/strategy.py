@@ -71,30 +71,59 @@ def calculate_macd(df):
     df['MACD_Histogram'] = df['MACD'] - df['MACD_Signal']
     return df
 
+
 def calculate_candlestick_patterns(data):
-    """Analizuje dane pod kątem wzorców świec japońskich."""
+    """Analizuje dane pod kątem różnych wzorców świec japońskich."""
     if data.empty:
         logging.error("Brak danych do obliczeń wzorców świec.")
         return pd.DataFrame()
 
     try:
-        # Przykładowe wzorce świec
+        # Bullish Engulfing
         data['Bullish_Engulfing'] = ((data['open'] < data['close'].shift(1)) &
-                                     (data['close'] > data['open'].shift(1)))
+                                     (data['close'] > data['open'].shift(1)) &
+                                     (data['close'] > data['open']) &
+                                     (data['open'] < data['close'].shift(1)))
 
+        # Bearish Engulfing
         data['Bearish_Engulfing'] = ((data['open'] > data['close'].shift(1)) &
-                                     (data['close'] < data['open'].shift(1)))
+                                     (data['close'] < data['open'].shift(1)) &
+                                     (data['close'] < data['open']) &
+                                     (data['open'] > data['close'].shift(1)))
 
+        # Hammer
         data['Hammer'] = ((data['low'] < data['open']) &
                           (data['low'] < data['close']) &
-                          ((data['close'] - data['low']) > 2 * (data['open'] - data['close'])))
+                          ((data['close'] - data['low']) > 2 * (data['open'] - data['close'])) &
+                          ((data['high'] - data['open']) < 0.1 * (data['close'] - data['low'])))
 
+        # Inverted Hammer
         data['Inverted_Hammer'] = ((data['high'] > data['open']) &
                                    (data['high'] > data['close']) &
-                                   ((data['high'] - data['open']) > 2 * (data['close'] - data['open'])))
+                                   ((data['high'] - data['open']) > 2 * (data['close'] - data['open'])) &
+                                   ((data['low'] - data['close']) < 0.1 * (data['high'] - data['open'])))
 
-        # Wybór interesujących nas cech
+        # Doji
+        data['Doji'] = np.abs(data['close'] - data['open']) < (data['high'] - data['low']) * 0.1
+
+        # Three White Soldiers
+        data['Three_White_Soldiers'] = ((data['close'] > data['open']) &
+                                        (data['close'].shift(1) > data['open'].shift(1)) &
+                                        (data['close'].shift(2) > data['open'].shift(2)) &
+                                        (data['close'] > data['close'].shift(1)) &
+                                        (data['close'].shift(1) > data['close'].shift(2)))
+
+        # Three Black Crows
+        data['Three_Black_Crows'] = ((data['close'] < data['open']) &
+                                     (data['close'].shift(1) < data['open'].shift(1)) &
+                                     (data['close'].shift(2) < data['open'].shift(2)) &
+                                     (data['close'] < data['close'].shift(1)) &
+                                     (data['close'].shift(1) < data['close'].shift(2)))
+
+        # Dodanie targetu na podstawie przyszłych ruchów cenowych
         data['Target'] = (data['close'].shift(-1) > data['close']).astype(int)
+
+        # Usuwanie NaN-ów powstałych przez przesunięcia i inne operacje
         return data.dropna()
 
     except Exception as e:
