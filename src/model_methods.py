@@ -108,7 +108,7 @@ def train_model(data, folder_path='models', model_filename='best_model.pth'):
         optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=0.0001)  # Dodanie weight_decay
 
         # Trening modelu
-        num_epochs = 50
+        num_epochs = 100
         batch_size = 46
 
         for epoch in range(num_epochs):

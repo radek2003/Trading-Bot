@@ -8567,3 +8567,289 @@ weighted avg       0.50      0.50      0.46      2001
 2024-09-05 20:43:56,106 - INFO - Dok³adnoœæ modelu: 49.55%
 2024-09-05 20:43:56,117 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
 2024-09-05 20:43:56,216 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2816301089
+2024-09-05 21:10:56,030 - ERROR - Problem z obliczaniem wzorców œwiec japoñskich.
+Traceback (most recent call last):
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\src\strategy.py", line 137, in calculate_candlestick_patterns
+    data_15m = data.resample('15T').agg({
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\pandas\core\resample.py", line 352, in aggregate
+    result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rafal\PycharmProjects\Trading-Bot\venv\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['volume'] do not exist"
+2024-09-05 21:10:56,039 - ERROR - Brak danych z cechami do trenowania modelu.
+2024-09-05 21:12:34,829 - INFO - Epoka [1/50], Strata: 0.6512
+2024-09-05 21:12:35,407 - INFO - Epoka [2/50], Strata: 0.6810
+2024-09-05 21:12:35,995 - INFO - Epoka [3/50], Strata: 0.6927
+2024-09-05 21:12:36,482 - INFO - Epoka [4/50], Strata: 0.6886
+2024-09-05 21:12:37,044 - INFO - Epoka [5/50], Strata: 0.6824
+2024-09-05 21:12:37,591 - INFO - Epoka [6/50], Strata: 0.6866
+2024-09-05 21:12:38,093 - INFO - Epoka [7/50], Strata: 0.6877
+2024-09-05 21:12:38,605 - INFO - Epoka [8/50], Strata: 0.6793
+2024-09-05 21:12:39,119 - INFO - Epoka [9/50], Strata: 0.6781
+2024-09-05 21:12:39,636 - INFO - Epoka [10/50], Strata: 0.7007
+2024-09-05 21:12:40,108 - INFO - Epoka [11/50], Strata: 0.6856
+2024-09-05 21:12:40,606 - INFO - Epoka [12/50], Strata: 0.6836
+2024-09-05 21:12:41,119 - INFO - Epoka [13/50], Strata: 0.6770
+2024-09-05 21:12:41,599 - INFO - Epoka [14/50], Strata: 0.6791
+2024-09-05 21:12:42,106 - INFO - Epoka [15/50], Strata: 0.6822
+2024-09-05 21:12:42,572 - INFO - Epoka [16/50], Strata: 0.6793
+2024-09-05 21:12:43,043 - INFO - Epoka [17/50], Strata: 0.6732
+2024-09-05 21:12:43,546 - INFO - Epoka [18/50], Strata: 0.6808
+2024-09-05 21:12:44,050 - INFO - Epoka [19/50], Strata: 0.6838
+2024-09-05 21:12:44,552 - INFO - Epoka [20/50], Strata: 0.6991
+2024-09-05 21:12:45,128 - INFO - Epoka [21/50], Strata: 0.6864
+2024-09-05 21:12:45,639 - INFO - Epoka [22/50], Strata: 0.6678
+2024-09-05 21:12:46,158 - INFO - Epoka [23/50], Strata: 0.6765
+2024-09-05 21:12:46,685 - INFO - Epoka [24/50], Strata: 0.6855
+2024-09-05 21:12:47,213 - INFO - Epoka [25/50], Strata: 0.6993
+2024-09-05 21:12:47,737 - INFO - Epoka [26/50], Strata: 0.6707
+2024-09-05 21:12:48,262 - INFO - Epoka [27/50], Strata: 0.7002
+2024-09-05 21:12:48,806 - INFO - Epoka [28/50], Strata: 0.6760
+2024-09-05 21:12:49,350 - INFO - Epoka [29/50], Strata: 0.6696
+2024-09-05 21:12:49,874 - INFO - Epoka [30/50], Strata: 0.6782
+2024-09-05 21:12:50,405 - INFO - Epoka [31/50], Strata: 0.6832
+2024-09-05 21:12:50,940 - INFO - Epoka [32/50], Strata: 0.6643
+2024-09-05 21:12:51,465 - INFO - Epoka [33/50], Strata: 0.6677
+2024-09-05 21:12:52,019 - INFO - Epoka [34/50], Strata: 0.6704
+2024-09-05 21:12:52,558 - INFO - Epoka [35/50], Strata: 0.6920
+2024-09-05 21:12:53,094 - INFO - Epoka [36/50], Strata: 0.6799
+2024-09-05 21:12:53,599 - INFO - Epoka [37/50], Strata: 0.6920
+2024-09-05 21:12:54,123 - INFO - Epoka [38/50], Strata: 0.6710
+2024-09-05 21:12:54,643 - INFO - Epoka [39/50], Strata: 0.6663
+2024-09-05 21:12:55,193 - INFO - Epoka [40/50], Strata: 0.6773
+2024-09-05 21:12:55,694 - INFO - Epoka [41/50], Strata: 0.6690
+2024-09-05 21:12:56,195 - INFO - Epoka [42/50], Strata: 0.6923
+2024-09-05 21:12:56,696 - INFO - Epoka [43/50], Strata: 0.6821
+2024-09-05 21:12:57,211 - INFO - Epoka [44/50], Strata: 0.6780
+2024-09-05 21:12:57,723 - INFO - Epoka [45/50], Strata: 0.6732
+2024-09-05 21:12:58,207 - INFO - Epoka [46/50], Strata: 0.6650
+2024-09-05 21:12:58,722 - INFO - Epoka [47/50], Strata: 0.6629
+2024-09-05 21:12:59,251 - INFO - Epoka [48/50], Strata: 0.7074
+2024-09-05 21:12:59,762 - INFO - Epoka [49/50], Strata: 0.6807
+2024-09-05 21:13:00,304 - INFO - Epoka [50/50], Strata: 0.6671
+2024-09-05 21:13:00,327 - INFO - Dok³adnoœæ modelu: 52.05%
+2024-09-05 21:13:00,331 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
+2024-09-05 21:13:00,448 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2816354803
+2024-09-05 21:40:32,438 - INFO - Epoka [1/50], Strata: 0.6175
+2024-09-05 21:40:33,059 - INFO - Epoka [2/50], Strata: 0.6259
+2024-09-05 21:40:33,686 - INFO - Epoka [3/50], Strata: 0.6209
+2024-09-05 21:40:34,299 - INFO - Epoka [4/50], Strata: 0.6255
+2024-09-05 21:40:34,906 - INFO - Epoka [5/50], Strata: 0.6303
+2024-09-05 21:40:35,521 - INFO - Epoka [6/50], Strata: 0.6319
+2024-09-05 21:40:36,161 - INFO - Epoka [7/50], Strata: 0.6512
+2024-09-05 21:40:36,749 - INFO - Epoka [8/50], Strata: 0.6284
+2024-09-05 21:40:37,347 - INFO - Epoka [9/50], Strata: 0.6216
+2024-09-05 21:40:37,929 - INFO - Epoka [10/50], Strata: 0.6246
+2024-09-05 21:40:38,512 - INFO - Epoka [11/50], Strata: 0.6522
+2024-09-05 21:40:39,089 - INFO - Epoka [12/50], Strata: 0.6206
+2024-09-05 21:40:39,727 - INFO - Epoka [13/50], Strata: 0.6129
+2024-09-05 21:40:40,366 - INFO - Epoka [14/50], Strata: 0.6227
+2024-09-05 21:40:40,956 - INFO - Epoka [15/50], Strata: 0.5998
+2024-09-05 21:40:41,550 - INFO - Epoka [16/50], Strata: 0.6174
+2024-09-05 21:40:42,146 - INFO - Epoka [17/50], Strata: 0.6138
+2024-09-05 21:40:42,728 - INFO - Epoka [18/50], Strata: 0.5990
+2024-09-05 21:40:43,311 - INFO - Epoka [19/50], Strata: 0.6129
+2024-09-05 21:40:43,897 - INFO - Epoka [20/50], Strata: 0.5867
+2024-09-05 21:40:44,471 - INFO - Epoka [21/50], Strata: 0.5951
+2024-09-05 21:40:45,029 - INFO - Epoka [22/50], Strata: 0.6300
+2024-09-05 21:40:45,566 - INFO - Epoka [23/50], Strata: 0.5688
+2024-09-05 21:40:46,074 - INFO - Epoka [24/50], Strata: 0.5937
+2024-09-05 21:40:46,575 - INFO - Epoka [25/50], Strata: 0.6115
+2024-09-05 21:40:47,103 - INFO - Epoka [26/50], Strata: 0.6085
+2024-09-05 21:40:47,643 - INFO - Epoka [27/50], Strata: 0.6592
+2024-09-05 21:40:48,185 - INFO - Epoka [28/50], Strata: 0.5961
+2024-09-05 21:40:48,746 - INFO - Epoka [29/50], Strata: 0.5595
+2024-09-05 21:40:49,253 - INFO - Epoka [30/50], Strata: 0.6205
+2024-09-05 21:40:49,752 - INFO - Epoka [31/50], Strata: 0.6185
+2024-09-05 21:40:50,264 - INFO - Epoka [32/50], Strata: 0.6123
+2024-09-05 21:40:50,769 - INFO - Epoka [33/50], Strata: 0.5725
+2024-09-05 21:40:51,338 - INFO - Epoka [34/50], Strata: 0.5872
+2024-09-05 21:40:51,841 - INFO - Epoka [35/50], Strata: 0.6367
+2024-09-05 21:40:52,339 - INFO - Epoka [36/50], Strata: 0.6034
+2024-09-05 21:40:52,882 - INFO - Epoka [37/50], Strata: 0.6402
+2024-09-05 21:40:53,400 - INFO - Epoka [38/50], Strata: 0.6031
+2024-09-05 21:40:53,924 - INFO - Epoka [39/50], Strata: 0.5539
+2024-09-05 21:40:54,467 - INFO - Epoka [40/50], Strata: 0.5930
+2024-09-05 21:40:54,985 - INFO - Epoka [41/50], Strata: 0.5871
+2024-09-05 21:40:55,489 - INFO - Epoka [42/50], Strata: 0.6446
+2024-09-05 21:40:56,019 - INFO - Epoka [43/50], Strata: 0.6049
+2024-09-05 21:40:56,569 - INFO - Epoka [44/50], Strata: 0.6014
+2024-09-05 21:40:57,085 - INFO - Epoka [45/50], Strata: 0.5616
+2024-09-05 21:40:57,603 - INFO - Epoka [46/50], Strata: 0.5859
+2024-09-05 21:40:58,194 - INFO - Epoka [47/50], Strata: 0.5802
+2024-09-05 21:40:58,724 - INFO - Epoka [48/50], Strata: 0.6470
+2024-09-05 21:40:59,228 - INFO - Epoka [49/50], Strata: 0.5701
+2024-09-05 21:40:59,760 - INFO - Epoka [50/50], Strata: 0.6091
+2024-09-05 21:40:59,776 - INFO - Dok³adnoœæ modelu: 49.70%
+2024-09-05 21:40:59,781 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
+2024-09-05 21:40:59,889 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2816400429
+2024-09-05 21:53:14,769 - INFO - Epoka [1/50], Strata: 0.5075
+2024-09-05 21:53:15,341 - INFO - Epoka [2/50], Strata: 0.6279
+2024-09-05 21:53:15,916 - INFO - Epoka [3/50], Strata: 0.6555
+2024-09-05 21:53:16,507 - INFO - Epoka [4/50], Strata: 0.6410
+2024-09-05 21:53:17,091 - INFO - Epoka [5/50], Strata: 0.5614
+2024-09-05 21:53:17,667 - INFO - Epoka [6/50], Strata: 0.6022
+2024-09-05 21:53:18,239 - INFO - Epoka [7/50], Strata: 0.5687
+2024-09-05 21:53:18,815 - INFO - Epoka [8/50], Strata: 0.5674
+2024-09-05 21:53:19,392 - INFO - Epoka [9/50], Strata: 0.6459
+2024-09-05 21:53:20,023 - INFO - Epoka [10/50], Strata: 0.6112
+2024-09-05 21:53:20,621 - INFO - Epoka [11/50], Strata: 0.5725
+2024-09-05 21:53:21,205 - INFO - Epoka [12/50], Strata: 0.5744
+2024-09-05 21:53:21,795 - INFO - Epoka [13/50], Strata: 0.5799
+2024-09-05 21:53:22,419 - INFO - Epoka [14/50], Strata: 0.5706
+2024-09-05 21:53:23,014 - INFO - Epoka [15/50], Strata: 0.5639
+2024-09-05 21:53:23,605 - INFO - Epoka [16/50], Strata: 0.5878
+2024-09-05 21:53:24,189 - INFO - Epoka [17/50], Strata: 0.6116
+2024-09-05 21:53:24,716 - INFO - Epoka [18/50], Strata: 0.6436
+2024-09-05 21:53:25,203 - INFO - Epoka [19/50], Strata: 0.6199
+2024-09-05 21:53:25,730 - INFO - Epoka [20/50], Strata: 0.5333
+2024-09-05 21:53:26,250 - INFO - Epoka [21/50], Strata: 0.5739
+2024-09-05 21:53:26,767 - INFO - Epoka [22/50], Strata: 0.6121
+2024-09-05 21:53:27,286 - INFO - Epoka [23/50], Strata: 0.5832
+2024-09-05 21:53:27,754 - INFO - Epoka [24/50], Strata: 0.5872
+2024-09-05 21:53:28,244 - INFO - Epoka [25/50], Strata: 0.5443
+2024-09-05 21:53:28,744 - INFO - Epoka [26/50], Strata: 0.5436
+2024-09-05 21:53:29,298 - INFO - Epoka [27/50], Strata: 0.5594
+2024-09-05 21:53:29,859 - INFO - Epoka [28/50], Strata: 0.5535
+2024-09-05 21:53:30,352 - INFO - Epoka [29/50], Strata: 0.5547
+2024-09-05 21:53:30,844 - INFO - Epoka [30/50], Strata: 0.5770
+2024-09-05 21:53:31,334 - INFO - Epoka [31/50], Strata: 0.5508
+2024-09-05 21:53:31,834 - INFO - Epoka [32/50], Strata: 0.5936
+2024-09-05 21:53:32,354 - INFO - Epoka [33/50], Strata: 0.5671
+2024-09-05 21:53:32,879 - INFO - Epoka [34/50], Strata: 0.5538
+2024-09-05 21:53:33,430 - INFO - Epoka [35/50], Strata: 0.5974
+2024-09-05 21:53:33,932 - INFO - Epoka [36/50], Strata: 0.5735
+2024-09-05 21:53:34,414 - INFO - Epoka [37/50], Strata: 0.5979
+2024-09-05 21:53:34,896 - INFO - Epoka [38/50], Strata: 0.5590
+2024-09-05 21:53:35,432 - INFO - Epoka [39/50], Strata: 0.5793
+2024-09-05 21:53:36,011 - INFO - Epoka [40/50], Strata: 0.5667
+2024-09-05 21:53:36,695 - INFO - Epoka [41/50], Strata: 0.5597
+2024-09-05 21:53:37,228 - INFO - Epoka [42/50], Strata: 0.5695
+2024-09-05 21:53:37,865 - INFO - Epoka [43/50], Strata: 0.5194
+2024-09-05 21:53:38,562 - INFO - Epoka [44/50], Strata: 0.5740
+2024-09-05 21:53:39,099 - INFO - Epoka [45/50], Strata: 0.5562
+2024-09-05 21:53:39,666 - INFO - Epoka [46/50], Strata: 0.5581
+2024-09-05 21:53:40,228 - INFO - Epoka [47/50], Strata: 0.5591
+2024-09-05 21:53:40,745 - INFO - Epoka [48/50], Strata: 0.5387
+2024-09-05 21:53:41,264 - INFO - Epoka [49/50], Strata: 0.5021
+2024-09-05 21:53:41,817 - INFO - Epoka [50/50], Strata: 0.5125
+2024-09-05 21:53:41,834 - INFO - Dok³adnoœæ modelu: 68.08%
+2024-09-05 21:53:41,844 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
+2024-09-05 21:53:41,957 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2816424159
+2024-09-05 21:54:18,343 - INFO - Epoka [1/100], Strata: 0.5700
+2024-09-05 21:54:18,928 - INFO - Epoka [2/100], Strata: 0.6880
+2024-09-05 21:54:19,503 - INFO - Epoka [3/100], Strata: 0.6060
+2024-09-05 21:54:20,016 - INFO - Epoka [4/100], Strata: 0.6241
+2024-09-05 21:54:20,505 - INFO - Epoka [5/100], Strata: 0.6300
+2024-09-05 21:54:21,013 - INFO - Epoka [6/100], Strata: 0.5717
+2024-09-05 21:54:21,555 - INFO - Epoka [7/100], Strata: 0.5967
+2024-09-05 21:54:22,040 - INFO - Epoka [8/100], Strata: 0.5899
+2024-09-05 21:54:22,516 - INFO - Epoka [9/100], Strata: 0.5545
+2024-09-05 21:54:22,984 - INFO - Epoka [10/100], Strata: 0.6565
+2024-09-05 21:54:23,500 - INFO - Epoka [11/100], Strata: 0.5971
+2024-09-05 21:54:23,977 - INFO - Epoka [12/100], Strata: 0.6694
+2024-09-05 21:54:24,483 - INFO - Epoka [13/100], Strata: 0.6632
+2024-09-05 21:54:25,033 - INFO - Epoka [14/100], Strata: 0.5953
+2024-09-05 21:54:25,568 - INFO - Epoka [15/100], Strata: 0.6127
+2024-09-05 21:54:26,061 - INFO - Epoka [16/100], Strata: 0.6148
+2024-09-05 21:54:26,574 - INFO - Epoka [17/100], Strata: 0.5466
+2024-09-05 21:54:27,101 - INFO - Epoka [18/100], Strata: 0.5416
+2024-09-05 21:54:27,612 - INFO - Epoka [19/100], Strata: 0.5710
+2024-09-05 21:54:28,134 - INFO - Epoka [20/100], Strata: 0.5729
+2024-09-05 21:54:28,654 - INFO - Epoka [21/100], Strata: 0.5921
+2024-09-05 21:54:29,209 - INFO - Epoka [22/100], Strata: 0.5508
+2024-09-05 21:54:29,715 - INFO - Epoka [23/100], Strata: 0.5740
+2024-09-05 21:54:30,225 - INFO - Epoka [24/100], Strata: 0.5856
+2024-09-05 21:54:30,729 - INFO - Epoka [25/100], Strata: 0.5656
+2024-09-05 21:54:31,224 - INFO - Epoka [26/100], Strata: 0.5441
+2024-09-05 21:54:31,732 - INFO - Epoka [27/100], Strata: 0.6174
+2024-09-05 21:54:32,290 - INFO - Epoka [28/100], Strata: 0.5662
+2024-09-05 21:54:32,850 - INFO - Epoka [29/100], Strata: 0.6044
+2024-09-05 21:54:33,370 - INFO - Epoka [30/100], Strata: 0.5803
+2024-09-05 21:54:33,902 - INFO - Epoka [31/100], Strata: 0.5924
+2024-09-05 21:54:34,410 - INFO - Epoka [32/100], Strata: 0.5799
+2024-09-05 21:54:34,977 - INFO - Epoka [33/100], Strata: 0.6020
+2024-09-05 21:54:35,534 - INFO - Epoka [34/100], Strata: 0.5687
+2024-09-05 21:54:36,058 - INFO - Epoka [35/100], Strata: 0.5491
+2024-09-05 21:54:36,575 - INFO - Epoka [36/100], Strata: 0.5722
+2024-09-05 21:54:37,137 - INFO - Epoka [37/100], Strata: 0.5734
+2024-09-05 21:54:37,721 - INFO - Epoka [38/100], Strata: 0.5502
+2024-09-05 21:54:38,287 - INFO - Epoka [39/100], Strata: 0.5303
+2024-09-05 21:54:38,855 - INFO - Epoka [40/100], Strata: 0.5668
+2024-09-05 21:54:39,379 - INFO - Epoka [41/100], Strata: 0.5822
+2024-09-05 21:54:39,878 - INFO - Epoka [42/100], Strata: 0.4904
+2024-09-05 21:54:40,421 - INFO - Epoka [43/100], Strata: 0.5613
+2024-09-05 21:54:40,958 - INFO - Epoka [44/100], Strata: 0.5556
+2024-09-05 21:54:41,474 - INFO - Epoka [45/100], Strata: 0.5718
+2024-09-05 21:54:41,988 - INFO - Epoka [46/100], Strata: 0.5575
+2024-09-05 21:54:42,506 - INFO - Epoka [47/100], Strata: 0.5277
+2024-09-05 21:54:43,058 - INFO - Epoka [48/100], Strata: 0.5433
+2024-09-05 21:54:43,576 - INFO - Epoka [49/100], Strata: 0.5336
+2024-09-05 21:54:44,066 - INFO - Epoka [50/100], Strata: 0.5601
+2024-09-05 21:54:44,591 - INFO - Epoka [51/100], Strata: 0.5827
+2024-09-05 21:54:45,141 - INFO - Epoka [52/100], Strata: 0.5512
+2024-09-05 21:54:45,701 - INFO - Epoka [53/100], Strata: 0.5655
+2024-09-05 21:54:46,215 - INFO - Epoka [54/100], Strata: 0.5395
+2024-09-05 21:54:46,781 - INFO - Epoka [55/100], Strata: 0.4852
+2024-09-05 21:54:47,288 - INFO - Epoka [56/100], Strata: 0.5359
+2024-09-05 21:54:47,825 - INFO - Epoka [57/100], Strata: 0.5665
+2024-09-05 21:54:48,377 - INFO - Epoka [58/100], Strata: 0.5379
+2024-09-05 21:54:48,885 - INFO - Epoka [59/100], Strata: 0.5162
+2024-09-05 21:54:49,387 - INFO - Epoka [60/100], Strata: 0.5165
+2024-09-05 21:54:49,880 - INFO - Epoka [61/100], Strata: 0.5587
+2024-09-05 21:54:50,392 - INFO - Epoka [62/100], Strata: 0.5249
+2024-09-05 21:54:50,899 - INFO - Epoka [63/100], Strata: 0.4690
+2024-09-05 21:54:51,432 - INFO - Epoka [64/100], Strata: 0.5070
+2024-09-05 21:54:51,942 - INFO - Epoka [65/100], Strata: 0.5592
+2024-09-05 21:54:52,438 - INFO - Epoka [66/100], Strata: 0.5376
+2024-09-05 21:54:52,932 - INFO - Epoka [67/100], Strata: 0.5413
+2024-09-05 21:54:53,475 - INFO - Epoka [68/100], Strata: 0.5282
+2024-09-05 21:54:53,959 - INFO - Epoka [69/100], Strata: 0.4768
+2024-09-05 21:54:54,491 - INFO - Epoka [70/100], Strata: 0.5545
+2024-09-05 21:54:55,027 - INFO - Epoka [71/100], Strata: 0.5168
+2024-09-05 21:54:55,544 - INFO - Epoka [72/100], Strata: 0.5379
+2024-09-05 21:54:56,103 - INFO - Epoka [73/100], Strata: 0.5548
+2024-09-05 21:54:56,663 - INFO - Epoka [74/100], Strata: 0.5257
+2024-09-05 21:54:57,184 - INFO - Epoka [75/100], Strata: 0.5473
+2024-09-05 21:54:57,730 - INFO - Epoka [76/100], Strata: 0.5153
+2024-09-05 21:54:58,336 - INFO - Epoka [77/100], Strata: 0.5415
+2024-09-05 21:54:58,898 - INFO - Epoka [78/100], Strata: 0.5348
+2024-09-05 21:54:59,389 - INFO - Epoka [79/100], Strata: 0.5469
+2024-09-05 21:54:59,933 - INFO - Epoka [80/100], Strata: 0.4671
+2024-09-05 21:55:00,440 - INFO - Epoka [81/100], Strata: 0.5024
+2024-09-05 21:55:00,953 - INFO - Epoka [82/100], Strata: 0.4865
+2024-09-05 21:55:01,509 - INFO - Epoka [83/100], Strata: 0.4627
+2024-09-05 21:55:02,038 - INFO - Epoka [84/100], Strata: 0.4656
+2024-09-05 21:55:02,549 - INFO - Epoka [85/100], Strata: 0.5011
+2024-09-05 21:55:03,095 - INFO - Epoka [86/100], Strata: 0.4642
+2024-09-05 21:55:03,671 - INFO - Epoka [87/100], Strata: 0.5232
+2024-09-05 21:55:04,191 - INFO - Epoka [88/100], Strata: 0.4348
+2024-09-05 21:55:04,747 - INFO - Epoka [89/100], Strata: 0.4895
+2024-09-05 21:55:05,373 - INFO - Epoka [90/100], Strata: 0.4724
+2024-09-05 21:55:05,975 - INFO - Epoka [91/100], Strata: 0.4488
+2024-09-05 21:55:06,511 - INFO - Epoka [92/100], Strata: 0.5145
+2024-09-05 21:55:07,022 - INFO - Epoka [93/100], Strata: 0.4154
+2024-09-05 21:55:07,530 - INFO - Epoka [94/100], Strata: 0.4813
+2024-09-05 21:55:08,060 - INFO - Epoka [95/100], Strata: 0.5927
+2024-09-05 21:55:08,546 - INFO - Epoka [96/100], Strata: 0.5285
+2024-09-05 21:55:09,060 - INFO - Epoka [97/100], Strata: 0.4669
+2024-09-05 21:55:09,585 - INFO - Epoka [98/100], Strata: 0.5469
+2024-09-05 21:55:10,153 - INFO - Epoka [99/100], Strata: 0.4634
+2024-09-05 21:55:10,685 - INFO - Epoka [100/100], Strata: 0.4785
+2024-09-05 21:55:10,720 - INFO - Dok³adnoœæ modelu: 67.98%
+2024-09-05 21:55:10,732 - INFO - Model zapisany jako C:\trenowanie modelu do bota\best_model.pth
+2024-09-05 21:55:10,846 - INFO - Transakcja przeprowadzona pomyœlnie, ID pozycji: 2816427228
