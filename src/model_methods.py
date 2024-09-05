@@ -1,5 +1,4 @@
 import os
-import joblib
 import logging
 import numpy as np
 import torch
@@ -9,17 +8,32 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import SMOTE
 
-# Definicja sieci neuronowej
-class SimpleNN(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(SimpleNN, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
+# Definicja sieci neuronowej z sześcioma warstwami ukrytymi
+class AdvancedNN(nn.Module):
+    def __init__(self, input_size, hidden_size1, hidden_size2, hidden_size3, hidden_size4, hidden_size5, hidden_size6, output_size):
+        super(AdvancedNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size1)
+        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.fc3 = nn.Linear(hidden_size2, hidden_size3)
+        self.fc4 = nn.Linear(hidden_size3, hidden_size4)
+        self.fc5 = nn.Linear(hidden_size4, hidden_size5)
+        self.fc6 = nn.Linear(hidden_size5, hidden_size6)
+        self.fc7 = nn.Linear(hidden_size6, output_size)
         self.relu = nn.ReLU()
+        self.dropout1 = nn.Dropout(p=0.4)  # Zmniejszona wartość dropout dla pierwszej warstwy
+        self.dropout2 = nn.Dropout(p=0.6)  # Większa wartość dropout dla późniejszych warstw
 
     def forward(self, x):
         x = self.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = self.dropout1(x)
+        x = self.relu(self.fc2(x))
+        x = self.dropout2(x)
+        x = self.relu(self.fc3(x))
+        x = self.relu(self.fc4(x))
+        x = self.dropout2(x)
+        x = self.relu(self.fc5(x))
+        x = self.relu(self.fc6(x))
+        x = self.fc7(x)
         return x
 
 def save_model(model, folder_path, filename='best_model.pth'):
@@ -74,23 +88,28 @@ def train_model(data, folder_path='models', model_filename='best_model.pth'):
         X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
         y_test_tensor = torch.tensor(y_test, dtype=torch.long)
 
-        # Inicjalizacja modelu
+        # Inicjalizacja modelu z sześcioma warstwami ukrytymi
         input_size = X_train.shape[1]
-        hidden_size = 64
+        hidden_size1 = 1024
+        hidden_size2 = 512
+        hidden_size3 = 256
+        hidden_size4 = 128
+        hidden_size5 = 64
+        hidden_size6 = 32
         output_size = len(np.unique(y_train))
-        model = SimpleNN(input_size, hidden_size, output_size)
+        model = AdvancedNN(input_size, hidden_size1, hidden_size2, hidden_size3, hidden_size4, hidden_size5, hidden_size6, output_size)
 
         # Sprawdzenie dostępności GPU
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model.to(device)
 
-        # Optymalizator i funkcja strat
+        # Optymalizator i funkcja strat z regularizacją L2
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=0.0001)  # Dodanie weight_decay
 
         # Trening modelu
-        num_epochs = 10
-        batch_size = 64
+        num_epochs = 50
+        batch_size = 46
 
         for epoch in range(num_epochs):
             model.train()

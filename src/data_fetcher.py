@@ -4,7 +4,7 @@ import logging
 
 
 # Pobieranie danych historycznych z mt5
-def fetch_historical_data(symbol, timeframe=mt5.TIMEFRAME_M15, bars=1000):
+def fetch_historical_data(symbol, timeframe=mt5.TIMEFRAME_M15, bars=10000):
     try:
         rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
         if rates is None or len(rates) == 0:
