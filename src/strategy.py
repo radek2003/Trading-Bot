@@ -83,6 +83,8 @@ def calculate_macd(df):
         return pd.DataFrame()
 
 
+import numpy as np
+
 def calculate_candlestick_patterns(data):
     """Dodaje cechy związane z formacjami świec do DataFrame."""
     data = data.copy()  # Tworzymy kopię DataFrame
@@ -108,17 +110,26 @@ def calculate_candlestick_patterns(data):
 
     data.loc[:, 'Doji'] = np.abs(data['close'] - data['open']) < (data['high'] - data['low']) * 0.1
 
-    data.loc[:, 'Three_White_Soldiers'] = ((data['close'] > data['open']) &
-                                           (data['close'].shift(1) > data['open'].shift(1)) &
-                                           (data['close'].shift(2) > data['open'].shift(2)) &
-                                           (data['open'] > data['open'].shift(1)) &
-                                           (data['open'].shift(1) > data['open'].shift(2)))
+    # Dodanie nowych formacji
+    data.loc[:, 'Shooting_Star'] = ((data['high'] > data['open'] + (data['open'] - data['low']) * 0.5) &
+                                     (data['low'] > data['open']) &
+                                     (data['close'] < data['open']) &
+                                     ((data['high'] - data['close']) > (data['close'] - data['low']) * 2))
 
-    data.loc[:, 'Three_Black_Crows'] = ((data['close'] < data['open']) &
-                                         (data['close'].shift(1) < data['open'].shift(1)) &
-                                         (data['close'].shift(2) < data['open'].shift(2)) &
-                                         (data['open'] < data['open'].shift(1)) &
-                                         (data['open'].shift(1) < data['open'].shift(2)))
+    data.loc[:, 'Morning_Star'] = ((data['close'].shift(2) < data['open'].shift(2)) &
+                                     (data['close'].shift(1) < data['open'].shift(1)) &
+                                     (data['close'] > data['open']) &
+                                     (data['open'].shift(2) < data['close'].shift(1)) &
+                                     (data['close'].shift(1) < data['open']))
+
+    data.loc[:, 'Evening_Star'] = ((data['close'].shift(2) > data['open'].shift(2)) &
+                                     (data['close'].shift(1) > data['open'].shift(1)) &
+                                     (data['close'] < data['open']) &
+                                     (data['open'].shift(2) > data['close'].shift(1)) &
+                                     (data['close'].shift(1) > data['open']))
+
+    data.loc[:, 'Spinning_Top'] = ((np.abs(data['close'] - data['open']) < (data['high'] - data['low']) * 0.3) &
+                                    ((data['high'] - data['low']) > (data['close'] - data['open']) * 2))
 
     data.loc[:, 'Target'] = (data['close'].shift(-1) > data['close']).astype(int)
     data.loc[:, 'Zielona_Swieca'] = data['close'] > data['open']
@@ -147,17 +158,26 @@ def calculate_candlestick_patterns(data):
 
     data.loc[:, 'Doji_15m'] = np.abs(data['close'] - data['open']) < (data['high'] - data['low']) * 0.1
 
-    data.loc[:, 'Three_White_Soldiers_15m'] = ((data['close'] > data['open']) &
-                                               (data['close'].shift(3) > data['open'].shift(3)) &
-                                               (data['close'].shift(6) > data['open'].shift(6)) &
-                                               (data['open'] > data['open'].shift(3)) &
-                                               (data['open'].shift(3) > data['open'].shift(6)))
+    # Dodanie nowych formacji dla 15 minut
+    data.loc[:, 'Shooting_Star_15m'] = ((data['high'] > data['open'].shift(3) + (data['open'].shift(3) - data['low'].shift(3)) * 0.5) &
+                                         (data['low'].shift(3) > data['open'].shift(3)) &
+                                         (data['close'].shift(3) < data['open'].shift(3)) &
+                                         ((data['high'].shift(3) - data['close'].shift(3)) > (data['close'].shift(3) - data['low'].shift(3)) * 2))
 
-    data.loc[:, 'Three_Black_Crows_15m'] = ((data['close'] < data['open']) &
-                                             (data['close'].shift(3) < data['open'].shift(3)) &
-                                             (data['close'].shift(6) < data['open'].shift(6)) &
-                                             (data['open'] < data['open'].shift(3)) &
-                                             (data['open'].shift(3) < data['open'].shift(6)))
+    data.loc[:, 'Morning_Star_15m'] = ((data['close'].shift(5) < data['open'].shift(5)) &
+                                         (data['close'].shift(4) < data['open'].shift(4)) &
+                                         (data['close'].shift(3) > data['open'].shift(3)) &
+                                         (data['open'].shift(5) < data['close'].shift(4)) &
+                                         (data['close'].shift(4) < data['open'].shift(4)))
+
+    data.loc[:, 'Evening_Star_15m'] = ((data['close'].shift(5) > data['open'].shift(5)) &
+                                         (data['close'].shift(4) > data['open'].shift(4)) &
+                                         (data['close'].shift(3) < data['open'].shift(3)) &
+                                         (data['open'].shift(5) > data['close'].shift(4)) &
+                                         (data['close'].shift(4) > data['open'].shift(4)))
+
+    data.loc[:, 'Spinning_Top_15m'] = ((np.abs(data['close'].shift(3) - data['open'].shift(3)) < (data['high'].shift(3) - data['low'].shift(3)) * 0.3) &
+                                        ((data['high'].shift(3) - data['low'].shift(3)) > (data['close'].shift(3) - data['open'].shift(3)) * 2))
 
     data.loc[:, 'Target_15m'] = (data['close'].shift(-3) > data['close']).astype(int)
     data.loc[:, 'Zielona_Swieca_15m'] = data['close'] > data['open']

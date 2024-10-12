@@ -20,8 +20,8 @@ class AdvancedNN(nn.Module):
         self.fc6 = nn.Linear(hidden_size5, hidden_size6)
         self.fc7 = nn.Linear(hidden_size6, output_size)
         self.relu = nn.ReLU()
-        self.dropout1 = nn.Dropout(p=0.4)  # Zmniejszona wartość dropout dla pierwszej warstwy
-        self.dropout2 = nn.Dropout(p=0.6)  # Większa wartość dropout dla późniejszych warstw
+        self.dropout1 = nn.Dropout(p=0.35)  # Zmniejszona wartość dropout dla pierwszej warstwy
+        self.dropout2 = nn.Dropout(p=0.55)  # Większa wartość dropout dla późniejszych warstw
 
     def forward(self, x):
         x = self.relu(self.fc1(x))
