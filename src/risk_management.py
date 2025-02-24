@@ -39,3 +39,4 @@ def calculate_position_size(account_balance, symbol):
     except Exception as e:
         logging.exception("Problem z obliczaniem wielkości pozycji.")
         return 0
+

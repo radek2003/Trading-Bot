@@ -83,7 +83,6 @@ def calculate_macd(df):
         return pd.DataFrame()
 
 
-import numpy as np
 
 def calculate_candlestick_patterns(data):
     """Dodaje cechy związane z formacjami świec do DataFrame."""
