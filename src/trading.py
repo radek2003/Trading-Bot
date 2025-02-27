@@ -114,6 +114,10 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
         }
 
         # Wysłanie zlecenia
+        if not mt5.terminal_info().connected:
+            logging.error("Brak połączenia z terminalem MT5.")
+            return
+
         result = mt5.order_send(request)
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             logging.error(f"Błąd wykonania transakcji: {result.retcode}, {mt5.last_error()}")
