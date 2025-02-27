@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import logging
 
-def test_trade_history(days_back=10):
+def test_trade_history(days_back=200):
     if not mt5.terminal_info():
         logging.error("MT5 nie jest zainicjalizowane.")
         return pd.DataFrame()

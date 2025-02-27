@@ -170,8 +170,15 @@ def train_model_with_history(data, folder_path, model_filename):
         class_counts = np.bincount(y_train)
         class_weights = torch.tensor([1.5 / class_counts[0], 2.0 / class_counts[1]], dtype=torch.float32).to(device)
         criterion = nn.CrossEntropyLoss(weight=class_weights)
-        optimizer = optim.Adam(model.parameters(), lr=0.00005, weight_decay=0.001)  # Obniżony learning rate
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+        optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.001)  # Zwiększony learning rate
+        scheduler = optim.lr_scheduler.CyclicLR(
+            optimizer,
+            base_lr=0.00001,  # Minimalna wartość learning rate
+            max_lr=0.0001,    # Maksymalna wartość learning rate
+            step_size_up=200,  # Liczba iteracji na cykl w górę (dostosowana wartość)
+            mode='triangular',  # Prosty cykl góra-dół
+            cycle_momentum=False  # Wyłącz momentum dla Adam
+        )
 
         # Trening
         num_epochs = 100  # Zwiększona liczba epok
@@ -189,6 +196,7 @@ def train_model_with_history(data, folder_path, model_filename):
                 loss = criterion(outputs, batch_y)
                 loss.backward()
                 optimizer.step()
+                scheduler.step()  # Aktualizacja lr po każdym batchu
                 running_loss += loss.item()
 
             avg_loss = running_loss / len(train_loader)
@@ -199,7 +207,7 @@ def train_model_with_history(data, folder_path, model_filename):
                 val_outputs = model(X_val_tensor.to(device))
                 val_loss = criterion(val_outputs, y_val_tensor.to(device))
 
-            logging.info(f"Epoka [{epoch + 1}/{num_epochs}], Train Loss: {avg_loss:.4f}, Val Loss: {val_loss:.4f}")
+            logging.info(f"Epoka [{epoch + 1}/{num_epochs}], Train Loss: {avg_loss:.4f}, Val Loss: {val_loss:.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
@@ -208,7 +216,6 @@ def train_model_with_history(data, folder_path, model_filename):
             else:
                 early_stop_counter += 1
 
-            scheduler.step(val_loss)
             if early_stop_counter >= patience:
                 logging.info("Wczesne zatrzymanie.")
                 break

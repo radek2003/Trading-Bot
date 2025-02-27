@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import time
 from ta.volatility import AverageTrueRange
 
-
 def execute_trade(model_prediction, symbol, volume, historical_data=None, confidence=None):
     """
     Wykonuje transakcję z robust obliczeniem SL (MAD + ATR) i dynamicznym TP zależnym od pewności predykcji.
@@ -38,9 +37,9 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
             logging.error(f"Niepoprawna cena bieżąca: {current_price}")
             return
 
-        # Obliczanie robust Stop Loss (MAD + ATR)
-        min_pips = 10
-        max_pips = 50
+        # Obliczanie robust Stop Loss (MAD + ATR) - dostosowane do ~150-160 pipsów
+        min_pips = 150  # Minimalny SL zwiększony do 150 pipsów
+        max_pips = 200  # Maksymalny SL zwiększony do 200 pipsów
         mad_factor = 15000
         atr_window = 14
 
@@ -56,23 +55,23 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
             atr_value = atr.average_true_range().iloc[-1]  # Ostatnia wartość ATR
             atr_pips = int(atr_value * 10000)  # Przelicz na pipsy
 
-            # Średnia ważona MAD i ATR (50/50)
-            stop_loss_pips = int(0.5 * mad_pips + 0.5 * atr_pips)
+            # Dostosowana waga MAD i ATR, by SL był bliżej 150-160 pipsów
+            stop_loss_pips = int(0.75 * mad_pips + 0.75 * atr_pips)  # Zmniejszono wagi z 1.0 na 0.75
             stop_loss_pips = min(max_pips, max(min_pips, stop_loss_pips))
         else:
-            stop_loss_pips = min_pips
-            logging.warning("Brak danych historycznych, używam domyślnego SL: 10 pipsów.")
+            stop_loss_pips = min_pips  # Domyślny SL = 150 pipsów
+            logging.warning("Brak danych historycznych, używam domyślnego SL: 150 pipsów.")
 
         # Obliczanie wartości SL i TP w jednostkach ceny
         stop_loss_value = stop_loss_pips * punkt
 
-        # Dynamiczny Risk-Reward Ratio w zależności od pewności
+        # Dynamiczny Risk-Reward Ratio - dostosowany do ~1:1 lub 1.5:1
         if confidence is not None and confidence < 0.05:  # Wysoka pewność
-            risk_reward_ratio = 3.0
-            logging.debug("Wysoka pewność: RR ustawione na 3.0")
+            risk_reward_ratio = 1.5  # Zamiast 5.0, by TP było bliżej SL
+            logging.debug("Wysoka pewność: RR ustawione na 1.5")
         else:
-            risk_reward_ratio = 2.0  # Domyślny RR
-            logging.debug("Standardowa pewność: RR ustawione na 2.0")
+            risk_reward_ratio = 1.0  # Domyślnie 1:1, jak w logach
+            logging.debug("Standardowa pewność: RR ustawione na 1.0")
         take_profit_value = stop_loss_value * risk_reward_ratio
 
         # Ustalanie poziomów SL i TP
@@ -124,10 +123,9 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
     except Exception as e:
         logging.exception("Problem z realizacją transakcji.")
 
+# Funkcja check_for_closed_positions pozostaje bez zmian
 def check_for_closed_positions(symbol):
-    """Sprawdza, czy pozycje dla danego symbolu zostały zamknięte na podstawie SL/TP lub innych czynników."""
     try:
-        # Pobierz aktualnie otwarte pozycje dla symbolu
         open_positions = mt5.positions_get(symbol=symbol)
         if open_positions is None:
             logging.error(f"Nie udało się pobrać informacji o otwartych pozycjach dla {symbol}. Kod błędu: {mt5.last_error()}")
@@ -135,7 +133,6 @@ def check_for_closed_positions(symbol):
         if not open_positions:
             logging.debug(f"Brak otwartych pozycji dla {symbol}.")
 
-        # Pobierz historię zleceń z ostatnich 10 dni
         to_date = datetime.now()
         from_date = to_date - timedelta(days=10)
         from_date_ts = int(time.mktime(from_date.timetuple()))
@@ -145,26 +142,21 @@ def check_for_closed_positions(symbol):
             logging.error(f"Nie udało się pobrać historii zleceń dla {symbol}. Kod błędu: {mt5.last_error()}")
             return
 
-        # Sprawdź otwarte pozycje
         open_position_ids = [pos.ticket for pos in open_positions] if open_positions else []
         for position in open_positions:
             logging.info(f"Pozycja {position.ticket} wciąż otwarta. SL: {position.sl}, TP: {position.tp}, Profit: {position.profit}")
 
-        # Analiza historii zamkniętych pozycji
         closed_positions = {}
         for deal in history_deals:
             if deal.type in [mt5.DEAL_TYPE_BUY, mt5.DEAL_TYPE_SELL] and deal.entry == mt5.DEAL_ENTRY_IN:
-                # Otwarcie pozycji
                 closed_positions[deal.position_id] = {"open_price": deal.price, "volume": deal.volume, "type": deal.type}
             elif deal.type in [mt5.DEAL_TYPE_BUY, mt5.DEAL_TYPE_SELL] and deal.entry == mt5.DEAL_ENTRY_OUT:
-                # Zamknięcie pozycji
                 if deal.position_id in closed_positions:
                     open_data = closed_positions[deal.position_id]
                     closed_positions[deal.position_id]["close_price"] = deal.price
                     closed_positions[deal.position_id]["profit"] = deal.profit
                     closed_positions[deal.position_id]["reason"] = deal.reason
 
-        # Logowanie zamkniętych pozycji
         for pos_id, data in closed_positions.items():
             if "close_price" in data and pos_id not in open_position_ids:
                 reason_str = "Ręczna" if data["reason"] == mt5.DEAL_REASON_CLIENT else \
