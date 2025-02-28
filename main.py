@@ -23,6 +23,7 @@ STRATEGIES = {
     'MovingAverages': calculate_robust_moving_averages,
 }
 
+
 def apply_strategies(data, strategies):
     """Aplikuje wszystkie strategie na dane i łączy ich cechy z jednym Target."""
     data_with_features = data.copy()
@@ -55,6 +56,7 @@ def apply_strategies(data, strategies):
 
     return data_with_features
 
+
 def main():
     """Główna funkcja programu."""
     if not mt5.initialize():
@@ -63,6 +65,7 @@ def main():
 
     symbol = "EURUSD"
     min_candles_for_patterns = 100  # Minimalna liczba świec do obliczenia formacji
+    seq_len = 10  # Długość sekwencji dla LSTM
 
     try:
         while True:
@@ -130,13 +133,14 @@ def main():
                 logging.error("Brak nowych danych 5-minutowych.")
                 continue
 
-            # Bierzemy ostatnie 6 świec do obliczenia formacji, predykcja dla ostatniej
-            latest_data = new_data_m5.tail(min_candles_for_patterns)
-            if len(latest_data) < min_candles_for_patterns:
-                logging.error(f"Za mało danych w latest_data ({len(latest_data)} świec) do obliczenia formacji.")
+            # Bierzemy ostatnie min_candles_for_patterns świec, ale predykcja wymaga sekwencji seq_len
+            latest_data = new_data_m5.tail(min_candles_for_patterns + seq_len - 1)
+            if len(latest_data) < seq_len:
+                logging.error(
+                    f"Za mało danych w latest_data ({len(latest_data)} świec) dla sekwencji LSTM ({seq_len}).")
                 continue
 
-            # Używamy close_smooth zamiast close w danych predykcyjnych
+            # Zastosowanie strategii do nowych danych
             latest_data_with_features = apply_strategies(latest_data, STRATEGIES)
 
             if latest_data_with_features.empty:
@@ -147,7 +151,8 @@ def main():
             latest_trade_history = test_trade_history()
             if not latest_trade_history.empty:
                 latest_trade_history = latest_trade_history[latest_trade_history['symbol'] == symbol]
-                latest_data_with_features = latest_data_with_features.merge(latest_trade_history, on='time', how='left').fillna(0)
+                latest_data_with_features = latest_data_with_features.merge(latest_trade_history, on='time',
+                                                                            how='left').fillna(0)
             else:
                 latest_data_with_features['profit'] = 0
                 latest_data_with_features['volume'] = 0
@@ -171,21 +176,30 @@ def main():
                 logging.warning(f"Usuwam nadmiarowe kolumny: {extra_columns}")
                 latest_data_with_features = latest_data_with_features.drop(columns=extra_columns)
 
-            # Wybór cech do predykcji (tylko ostatnia świeca)
-            features_to_scale = latest_data_with_features[training_columns].iloc[-1:]
-            logging.debug(f"Kolumny do predykcji: {list(features_to_scale.columns)}")
+            # Przygotowanie sekwencji dla LSTM (ostatnie seq_len świec)
+            features_to_scale = latest_data_with_features[training_columns].tail(seq_len)
+            if len(features_to_scale) < seq_len:
+                logging.error(f"Za mało danych po filtracji ({len(features_to_scale)}) dla sekwencji LSTM ({seq_len}).")
+                continue
 
-            # Skalowanie i predykcja z Monte Carlo Dropout
+            # Skalowanie i przekształcenie w 3D dla LSTM
+            features_scaled = scaler.transform(features_to_scale.values)
+            features_scaled = features_scaled.reshape(1, seq_len, -1)  # (1, seq_len, features)
+            logging.debug(f"Shape danych do predykcji: {features_scaled.shape}")
+
+            # Predykcja z Monte Carlo Dropout
             try:
-                features_scaled = scaler.transform(features_to_scale.values)
-                predictions_mean, predictions_std = mc_dropout_predict(model, torch.tensor(features_scaled, dtype=torch.float32), num_samples=100, device='cuda' if torch.cuda.is_available() else 'cpu')
+                features_tensor = torch.tensor(features_scaled, dtype=torch.float32)
+                predictions_mean, predictions_std = mc_dropout_predict(model, features_tensor, num_samples=100,
+                                                                       device='cuda' if torch.cuda.is_available() else 'cpu')
                 if predictions_mean is None:
                     logging.error("Predykcja nie powiodła się.")
                     continue
 
                 model_prediction = torch.argmax(predictions_mean, dim=1)[0].item()
                 prediction_confidence = predictions_std[0].max().item()
-                logging.debug(f"Predykcja: {model_prediction}, Prawdopodobieństwa: {predictions_mean[0].tolist()}, Niepewność: {prediction_confidence:.4f}")
+                logging.debug(
+                    f"Predykcja: {model_prediction}, Prawdopodobieństwa: {predictions_mean[0].tolist()}, Niepewność: {prediction_confidence:.4f}")
 
                 confidence_threshold = 0.1
                 if prediction_confidence <= confidence_threshold:
@@ -197,7 +211,7 @@ def main():
                     position_size = calculate_position_size(account_balance, symbol, data_m5)
                     if position_size > 0:
                         execute_trade(model_prediction, symbol, volume=position_size,
-                                      historical_data=data_m5, confidence=prediction_confidence)  # Nowe wywołanie
+                                      historical_data=data_m5, confidence=prediction_confidence)
                         check_for_closed_positions(symbol)
                     else:
                         logging.warning("Wielkość pozycji wynosi 0, pomijam transakcję.")
@@ -219,6 +233,7 @@ def main():
     finally:
         mt5.shutdown()
         logging.info("Zamknięcie po zakończeniu handlu")
+
 
 if __name__ == "__main__":
     pd.set_option('future.no_silent_downcasting', True)
