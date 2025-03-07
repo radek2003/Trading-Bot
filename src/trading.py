@@ -6,27 +6,14 @@ import time
 from ta.volatility import AverageTrueRange
 
 def execute_trade(model_prediction, symbol, volume, historical_data=None, confidence=None):
-    """
-    Wykonuje transakcję z robust obliczeniem SL (MAD + ATR) i dynamicznym TP zależnym od pewności predykcji.
-
-    Args:
-        model_prediction: 1 (BUY) lub 0 (SELL)
-        symbol: Symbol (np. 'EURUSD')
-        volume: Wielkość pozycji
-        historical_data: Dane historyczne do obliczenia SL
-        confidence: Niepewność predykcji (prediction_confidence z Monte Carlo Dropout)
-    """
     try:
-        # Pobieranie informacji o symbolu
         symbol_info = mt5.symbol_info(symbol)
         if symbol_info is None:
             logging.error("Nie można pobrać informacji o symbolu.")
             return
 
-        punkt = symbol_info.point  # np. 0.00001 dla EURUSD
-        digits = symbol_info.digits  # np. 5 dla EURUSD
-
-        # Pobieranie aktualnych cen
+        punkt = symbol_info.point
+        digits = symbol_info.digits
         tick = mt5.symbol_info_tick(symbol)
         if tick is None:
             logging.error("Nie można pobrać aktualnych cen.")
@@ -37,59 +24,47 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
             logging.error(f"Niepoprawna cena bieżąca: {current_price}")
             return
 
-        # Obliczanie robust Stop Loss (MAD + ATR) - dostosowane do ~150-160 pipsów
-        min_pips = 150  # Minimalny SL zwiększony do 150 pipsów
-        max_pips = 200  # Maksymalny SL zwiększony do 200 pipsów
-        mad_factor = 15000
+        # Obliczanie spreadu
+        spread = (tick.ask - tick.bid) / punkt
+
+        # Dynamiczny SL oparty na ATR
+        min_pips = 150
+        max_pips = 200
         atr_window = 14
+        atr_multiplier = 2.5
 
         if historical_data is not None and not historical_data.empty:
-            # MAD (Median Absolute Deviation)
-            price_changes = np.abs(historical_data['close'].pct_change().dropna())
-            mad = np.median(np.abs(price_changes - price_changes.median())) * 1.4826
-            mad_pips = int(mad * mad_factor)
-
-            # ATR (Average True Range)
             atr = AverageTrueRange(high=historical_data['high'], low=historical_data['low'],
                                    close=historical_data['close'], window=atr_window)
-            atr_value = atr.average_true_range().iloc[-1]  # Ostatnia wartość ATR
-            atr_pips = int(atr_value * 10000)  # Przelicz na pipsy
-
-            # Dostosowana waga MAD i ATR, by SL był bliżej 150-160 pipsów
-            stop_loss_pips = int(0.75 * mad_pips + 0.75 * atr_pips)  # Zmniejszono wagi z 1.0 na 0.75
+            atr_value = atr.average_true_range().iloc[-1]
+            stop_loss_pips = int(atr_value * atr_multiplier / punkt)
             stop_loss_pips = min(max_pips, max(min_pips, stop_loss_pips))
         else:
-            stop_loss_pips = min_pips  # Domyślny SL = 150 pipsów
+            stop_loss_pips = min_pips
             logging.warning("Brak danych historycznych, używam domyślnego SL: 150 pipsów.")
 
-        # Obliczanie wartości SL i TP w jednostkach ceny
         stop_loss_value = stop_loss_pips * punkt
 
-        # Dynamiczny Risk-Reward Ratio - dostosowany do ~1:1 lub 1.5:1
-        if confidence is not None and confidence < 0.05:  # Wysoka pewność
-            risk_reward_ratio = 1.5  # Zamiast 5.0, by TP było bliżej SL
-            logging.debug("Wysoka pewność: RR ustawione na 1.5")
+        # Elastyczne TP oparte na pewności
+        scaling_factor = 1.0
+        if confidence is not None:
+            risk_reward_ratio = 1 + (1 - confidence) * scaling_factor
         else:
-            risk_reward_ratio = 1.0  # Domyślnie 1:1, jak w logach
-            logging.debug("Standardowa pewność: RR ustawione na 1.0")
+            risk_reward_ratio = 1.0
         take_profit_value = stop_loss_value * risk_reward_ratio
 
-        # Ustalanie poziomów SL i TP
+        # Ustalanie SL i TP z uwzględnieniem spreadu
         if model_prediction == 1:  # BUY
-            stop_loss_price = current_price - stop_loss_value
-            take_profit_price = current_price + take_profit_value
+            stop_loss_price = current_price - stop_loss_value - spread * punkt
+            take_profit_price = current_price + take_profit_value + spread * punkt
         else:  # SELL
-            stop_loss_price = current_price + stop_loss_value
-            take_profit_price = current_price - take_profit_value
+            stop_loss_price = current_price + stop_loss_value + spread * punkt
+            take_profit_price = current_price - take_profit_value - spread * punkt
 
         stop_loss_price = round(stop_loss_price, digits)
         take_profit_price = round(take_profit_price, digits)
 
-        logging.debug(
-            f"Current Price: {current_price}, SL Pips: {stop_loss_pips}, SL Value: {stop_loss_value}, TP Value: {take_profit_value}")
-        logging.debug(f"SL Price: {stop_loss_price}, TP Price: {take_profit_price}")
-
-        # Walidacja cen
+        # Walidacja
         if stop_loss_price <= 0 or take_profit_price <= 0:
             logging.error(f"Błąd: Niepoprawne ceny SL/TP - SL: {stop_loss_price}, TP: {take_profit_price}")
             return
@@ -112,11 +87,6 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
             "type_time": mt5.ORDER_TIME_GTC,
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
-
-        # Wysłanie zlecenia
-        if not mt5.terminal_info().connected:
-            logging.error("Brak połączenia z terminalem MT5.")
-            return
 
         result = mt5.order_send(request)
         if result.retcode != mt5.TRADE_RETCODE_DONE:

@@ -4,6 +4,7 @@ import pandas as pd
 import time
 import os
 import torch
+from torch.utils.data import DataLoader
 from src.data_fetcher import fetch_historical_data, test_trade_history
 from src.model_methods import train_model_with_history, mc_dropout_predict
 from src.trading import execute_trade, check_for_closed_positions
@@ -25,14 +26,22 @@ STRATEGIES = {
 
 
 def apply_strategies(data, strategies):
-    """Aplikuje wszystkie strategie na dane i łączy ich cechy z jednym Target."""
+    """
+    Aplikuje wybrane strategie na dane i łączy ich cechy z jednym Target.
+
+    Args:
+        data (pd.DataFrame): Dane wejściowe z cenami.
+        strategies (dict): Słownik strategii do zastosowania.
+
+    Returns:
+        pd.DataFrame: Dane z dodanymi cechami i kolumną Target.
+    """
     data_with_features = data.copy()
     target_col = None
 
     for strategy_name, strategy_func in strategies.items():
         logging.info(f"Obliczanie cech dla strategii: {strategy_name}")
         try:
-            # Używamy close_smooth zamiast close dla większej stabilności
             features = strategy_func(data_with_features.assign(close=data_with_features['close_smooth']))
             if features.empty:
                 logging.warning(f"Strategia {strategy_name} zwróciła pusty DataFrame.")
@@ -54,18 +63,22 @@ def apply_strategies(data, strategies):
         logging.warning("Brak kolumny Target, definiuję domyślny.")
         data_with_features['Target'] = (data_with_features['close'].shift(-1) > data_with_features['close']).astype(int)
 
+    # Usunięcie kolumny Target_15m, jeśli istnieje, aby uniknąć przecieku danych
+    if 'Target_15m' in data_with_features.columns:
+        data_with_features = data_with_features.drop('Target_15m', axis=1)
+
     return data_with_features
 
 
 def main():
-    """Główna funkcja programu."""
+    """Główna funkcja programu realizująca handel automatyczny."""
     if not mt5.initialize():
         logging.error(f"Inicjalizacja MT5 nie powiodła się, kod błędu: {mt5.last_error()}")
         return
 
     symbol = "EURUSD"
-    min_candles_for_patterns = 100  # Minimalna liczba świec do obliczenia formacji
-    seq_len = 10  # Długość sekwencji dla LSTM
+    min_candles_for_patterns = 200  # Minimalna liczba świec do obliczenia formacji
+    seq_len = 30  # Długość sekwencji dla LSTM
 
     try:
         while True:
@@ -91,9 +104,8 @@ def main():
 
             data = data_m5
 
-            # Zastosowanie wszystkich strategii z wygładzonymi cenami
+            # Zastosowanie strategii
             data_with_features = apply_strategies(data, STRATEGIES)
-
             if data_with_features.empty:
                 logging.error("Brak danych z cechami do analizy.")
                 continue
@@ -133,7 +145,6 @@ def main():
                 logging.error("Brak nowych danych 5-minutowych.")
                 continue
 
-            # Bierzemy ostatnie min_candles_for_patterns świec, ale predykcja wymaga sekwencji seq_len
             latest_data = new_data_m5.tail(min_candles_for_patterns + seq_len - 1)
             if len(latest_data) < seq_len:
                 logging.error(
@@ -142,7 +153,6 @@ def main():
 
             # Zastosowanie strategii do nowych danych
             latest_data_with_features = apply_strategies(latest_data, STRATEGIES)
-
             if latest_data_with_features.empty:
                 logging.error("Brak danych z cechami do przewidywań.")
                 continue
@@ -166,7 +176,11 @@ def main():
             if 'type' in latest_data_with_features.columns:
                 latest_data_with_features['trade_type'] = latest_data_with_features['type'].map({1: 1, 0: 0}).fillna(0)
 
-            # Dopasowanie kolumn
+            # Usunięcie Target_15m, jeśli istnieje
+            if 'Target_15m' in latest_data_with_features.columns:
+                latest_data_with_features = latest_data_with_features.drop('Target_15m', axis=1)
+
+            # Dopasowanie kolumn do tych użytych w treningu
             for col in training_columns:
                 if col not in latest_data_with_features.columns:
                     logging.warning(f"Dodaję brakującą kolumnę: {col}")
@@ -176,7 +190,7 @@ def main():
                 logging.warning(f"Usuwam nadmiarowe kolumny: {extra_columns}")
                 latest_data_with_features = latest_data_with_features.drop(columns=extra_columns)
 
-            # Przygotowanie sekwencji dla LSTM (ostatnie seq_len świec)
+            # Przygotowanie sekwencji dla LSTM
             features_to_scale = latest_data_with_features[training_columns].tail(seq_len)
             if len(features_to_scale) < seq_len:
                 logging.error(f"Za mało danych po filtracji ({len(features_to_scale)}) dla sekwencji LSTM ({seq_len}).")

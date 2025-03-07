@@ -119,7 +119,7 @@ def train_model_with_history(data, folder_path, model_filename):
         X_scaled = scaler.fit_transform(X)
 
         # Przygotowanie sekwencji dla LSTM (seq_len=10)
-        seq_len = 10
+        seq_len = 30
         X_seq, y_seq = [], []
         for i in range(len(X_scaled) - seq_len + 1):
             X_seq.append(X_scaled[i:i + seq_len])
