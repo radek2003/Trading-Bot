@@ -24,7 +24,6 @@ STRATEGIES = {
     'MovingAverages': calculate_robust_moving_averages,
 }
 
-
 def apply_strategies(data, strategies):
     """
     Aplikuje wybrane strategie na dane i łączy ich cechy z jednym Target.
@@ -69,7 +68,6 @@ def apply_strategies(data, strategies):
 
     return data_with_features
 
-
 def main():
     """Główna funkcja programu realizująca handel automatyczny."""
     if not mt5.initialize():
@@ -79,6 +77,15 @@ def main():
     symbol = "EURUSD"
     min_candles_for_patterns = 200  # Minimalna liczba świec do obliczenia formacji
     seq_len = 30  # Długość sekwencji dla LSTM
+
+    # Dynamiczne ustawienie ścieżki do folderu models
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # Katalog, w którym znajduje się skrypt
+    folder_path = os.path.join(script_dir, "models")  # Ścieżka do folderu models
+
+    # Utworzenie folderu models, jeśli nie istnieje
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        logging.info(f"Utworzono folder models: {folder_path}")
 
     try:
         while True:
@@ -131,7 +138,6 @@ def main():
                 continue
 
             # Trenowanie modelu
-            folder_path = r"C:\trenowanie modelu do bota"
             model_filename = 'best_model.pth'
             model, scaler, training_columns = train_model_with_history(data_with_features, folder_path, model_filename)
 
@@ -247,7 +253,6 @@ def main():
     finally:
         mt5.shutdown()
         logging.info("Zamknięcie po zakończeniu handlu")
-
 
 if __name__ == "__main__":
     pd.set_option('future.no_silent_downcasting', True)

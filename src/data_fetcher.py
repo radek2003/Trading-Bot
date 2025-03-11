@@ -35,7 +35,7 @@ def test_trade_history(days_back=200):
     deals['time'] = pd.to_datetime(deals['time'], unit='s')
     return deals
 
-def fetch_historical_data(symbol, bars_m5=90000, bars_m15=90000):
+def fetch_historical_data(symbol, bars_m5=1000, bars_m15=1000):
     try:
         # Pobieranie danych 5-minutowych
         rates_m5 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, bars_m5)
