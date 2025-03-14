@@ -4,10 +4,9 @@ import pandas as pd
 import time
 import os
 import torch
-from torch.utils.data import DataLoader
 from src.data_fetcher import fetch_historical_data, test_trade_history
 from src.model_methods import train_model_with_history, mc_dropout_predict
-from src.trading import execute_trade, check_for_closed_positions
+from src.trading import execute_trade, check_for_closed_positions, integrate_with_main
 from src.strategy import calculate_candlestick_patterns, calculate_robust_macd, calculate_robust_moving_averages
 from src.risk_management import calculate_position_size
 
@@ -86,6 +85,9 @@ def main():
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
         logging.info(f"Utworzono folder models: {folder_path}")
+
+    # Uruchomienie wątku do dynamicznej modyfikacji SL/TP
+    sl_tp_thread = integrate_with_main(symbol=symbol)
 
     try:
         while True:

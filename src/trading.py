@@ -3,7 +3,9 @@ import logging
 import numpy as np
 from datetime import datetime, timedelta
 import time
+import pandas as pd
 from ta.volatility import AverageTrueRange
+import threading
 
 def execute_trade(model_prediction, symbol, volume, historical_data=None, confidence=None):
     try:
@@ -97,7 +99,6 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
     except Exception as e:
         logging.exception("Problem z realizacją transakcji.")
 
-# Funkcja check_for_closed_positions pozostaje bez zmian
 def check_for_closed_positions(symbol):
     try:
         open_positions = mt5.positions_get(symbol=symbol)
@@ -142,3 +143,118 @@ def check_for_closed_positions(symbol):
 
     except Exception as e:
         logging.exception(f"Problem ze sprawdzeniem pozycji dla {symbol}: {str(e)}")
+
+def adjust_sl_tp_robustly(symbol, atr_window=14, atr_multiplier_sl=2.5, atr_multiplier_tp=3.5, min_pips_sl=100, max_pips_sl=200, confidence_threshold=0.15):
+    try:
+        if not mt5.initialize():
+            logging.error(f"Inicjalizacja MT5 nie powiodła się: {mt5.last_error()}")
+            return
+
+        logging.info(f"Rozpoczęto monitorowanie i modyfikację SL/TP dla {symbol}")
+
+        while True:
+            # Pobieranie otwartych pozycji
+            positions = mt5.positions_get(symbol=symbol)
+            if positions is None:
+                logging.error(f"Nie udało się pobrać pozycji dla {symbol}: {mt5.last_error()}")
+                continue
+            if not positions:
+                logging.debug(f"Brak otwartych pozycji dla {symbol}. Oczekiwanie na nowe pozycje...")
+                time.sleep(5)  # Krótkie opóźnienie, jeśli brak pozycji
+                continue
+
+            # Pobieranie danych historycznych (5-minutowych) do obliczenia ATR
+            rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, atr_window + 1)
+            if rates is None or len(rates) < atr_window:
+                logging.warning(f"Za mało danych historycznych dla {symbol} do obliczenia ATR.")
+                time.sleep(5)
+                continue
+
+            historical_data = pd.DataFrame(rates)
+            atr = AverageTrueRange(high=historical_data['high'], low=historical_data['low'],
+                                   close=historical_data['close'], window=atr_window)
+            atr_value = atr.average_true_range().iloc[-1]
+
+            # Pobieranie aktualnych cen rynkowych
+            tick = mt5.symbol_info_tick(symbol)
+            if tick is None:
+                logging.error(f"Nie można pobrać tick dla {symbol}")
+                continue
+
+            current_price = tick.ask if positions[0].type == mt5.ORDER_TYPE_BUY else tick.bid
+            symbol_info = mt5.symbol_info(symbol)
+            punkt = symbol_info.point
+            digits = symbol_info.digits
+            spread = (tick.ask - tick.bid) / punkt
+
+            # Robust volatility (MAD) na podstawie ostatnich zmian cen
+            price_changes = historical_data['close'].pct_change().dropna()
+            mad = np.median(np.abs(price_changes - price_changes.median())) * 1.4826
+            volatility_adjustment = 1 + mad * 100  # Skalowanie zmienności dla robustności
+
+            # Iteracja po wszystkich otwartych pozycjach
+            for position in positions:
+                position_id = position.ticket
+                is_buy = position.type == mt5.ORDER_TYPE_BUY
+                original_sl = position.sl
+                original_tp = position.tp
+                open_price = position.price_open
+
+                # Obliczanie dynamicznego SL opartego na ATR i zmienności
+                stop_loss_pips = int(atr_value * atr_multiplier_sl / punkt / volatility_adjustment)
+                stop_loss_pips = min(max_pips_sl, max(min_pips_sl, stop_loss_pips))
+                stop_loss_value = stop_loss_pips * punkt
+
+                # Obliczanie dynamicznego TP z robust optimization
+                take_profit_pips = int(atr_value * atr_multiplier_tp / punkt / volatility_adjustment)
+                take_profit_value = take_profit_pips * punkt
+
+                # Ustalanie nowych SL i TP z uwzględnieniem spreadu i typu pozycji
+                if is_buy:
+                    new_sl = current_price - stop_loss_value - spread * punkt
+                    new_tp = current_price + take_profit_value + spread * punkt
+                else:
+                    new_sl = current_price + stop_loss_value + spread * punkt
+                    new_tp = current_price - take_profit_value - spread * punkt
+
+                new_sl = round(new_sl, digits)
+                new_tp = round(new_tp, digits)
+
+                # Robust optimization: modyfikacja tylko przy znaczącym ruchu rynkowym
+                price_move = abs(current_price - open_price) / punkt
+                min_move_threshold = stop_loss_pips * 0.5  # Próg ruchu: 50% obecnego SL
+
+                # Sprawdzanie, czy ruch rynkowy uzasadnia modyfikację
+                if price_move > min_move_threshold and abs(new_sl - original_sl) > punkt * 5:
+                    # Tworzenie zlecenia modyfikacji
+                    request = {
+                        "action": mt5.TRADE_ACTION_SLTP,
+                        "position": position_id,
+                        "sl": new_sl,
+                        "tp": new_tp,
+                        "symbol": symbol,
+                    }
+
+                    result = mt5.order_send(request)
+                    if result.retcode == mt5.TRADE_RETCODE_DONE:
+                        logging.info(f"Pozycja {position_id}: SL zmieniono na {new_sl}, TP na {new_tp}")
+                    else:
+                        logging.error(f"Błąd modyfikacji pozycji {position_id}: {result.retcode}, {mt5.last_error()}")
+
+            # Krótkie opóźnienie, aby uniknąć przeciążenia MT5
+            time.sleep(300)
+
+    except KeyboardInterrupt:
+        logging.info("Przerwano monitorowanie SL/TP przez użytkownika.")
+    except Exception as e:
+        logging.error(f"Błąd w adjust_sl_tp_robustly: {str(e)}")
+    finally:
+        mt5.shutdown()
+        logging.info("Zakończono monitorowanie SL/TP.")
+
+def integrate_with_main(symbol="EURUSD"):
+    """Integracja z funkcją main() poprzez uruchomienie w osobnym wątku."""
+    sl_tp_thread = threading.Thread(target=adjust_sl_tp_robustly, args=(symbol,), daemon=True)
+    sl_tp_thread.start()
+    logging.info("Uruchomiono wątek do dynamicznej modyfikacji SL/TP")
+    return sl_tp_thread
