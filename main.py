@@ -7,7 +7,7 @@ import torch
 from src.data_fetcher import fetch_historical_data, test_trade_history
 from src.model_methods import train_model_with_history, mc_dropout_predict
 from src.trading import execute_trade, check_for_closed_positions, integrate_with_main
-from src.strategy import calculate_candlestick_patterns, calculate_robust_macd, calculate_robust_moving_averages
+from src.strategy import apply_strategy, calculate_all_features  # Zaktualizowano importy
 from src.risk_management import calculate_position_size
 
 # Wyciszenie ostrzeżeń OpenMP
@@ -15,57 +15,6 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # Konfiguracja logowania
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
-
-# Definicja strategii
-STRATEGIES = {
-    'Candlestick': calculate_candlestick_patterns,
-    'MACD': calculate_robust_macd,
-    'MovingAverages': calculate_robust_moving_averages,
-}
-
-def apply_strategies(data, strategies):
-    """
-    Aplikuje wybrane strategie na dane i łączy ich cechy z jednym Target.
-
-    Args:
-        data (pd.DataFrame): Dane wejściowe z cenami.
-        strategies (dict): Słownik strategii do zastosowania.
-
-    Returns:
-        pd.DataFrame: Dane z dodanymi cechami i kolumną Target.
-    """
-    data_with_features = data.copy()
-    target_col = None
-
-    for strategy_name, strategy_func in strategies.items():
-        logging.info(f"Obliczanie cech dla strategii: {strategy_name}")
-        try:
-            features = strategy_func(data_with_features.assign(close=data_with_features['close_smooth']))
-            if features.empty:
-                logging.warning(f"Strategia {strategy_name} zwróciła pusty DataFrame.")
-                continue
-
-            if 'Target' in features.columns:
-                if target_col is None:
-                    target_col = features['Target']
-                features = features.drop('Target', axis=1)
-
-            new_columns = [col for col in features.columns if col not in data_with_features.columns]
-            data_with_features = pd.concat([data_with_features, features[new_columns]], axis=1)
-        except Exception as e:
-            logging.error(f"Błąd w strategii {strategy_name}: {str(e)}")
-
-    if target_col is not None:
-        data_with_features['Target'] = target_col
-    else:
-        logging.warning("Brak kolumny Target, definiuję domyślny.")
-        data_with_features['Target'] = (data_with_features['close'].shift(-1) > data_with_features['close']).astype(int)
-
-    # Usunięcie kolumny Target_15m, jeśli istnieje, aby uniknąć przecieku danych
-    if 'Target_15m' in data_with_features.columns:
-        data_with_features = data_with_features.drop('Target_15m', axis=1)
-
-    return data_with_features
 
 def main():
     """Główna funkcja programu realizująca handel automatyczny."""
@@ -113,8 +62,8 @@ def main():
 
             data = data_m5
 
-            # Zastosowanie strategii
-            data_with_features = apply_strategies(data, STRATEGIES)
+            # Zastosowanie wszystkich cech z calculate_all_features
+            data_with_features = calculate_all_features(data)
             if data_with_features.empty:
                 logging.error("Brak danych z cechami do analizy.")
                 continue
@@ -159,8 +108,8 @@ def main():
                     f"Za mało danych w latest_data ({len(latest_data)} świec) dla sekwencji LSTM ({seq_len}).")
                 continue
 
-            # Zastosowanie strategii do nowych danych
-            latest_data_with_features = apply_strategies(latest_data, STRATEGIES)
+            # Zastosowanie wszystkich cech do nowych danych
+            latest_data_with_features = calculate_all_features(latest_data)
             if latest_data_with_features.empty:
                 logging.error("Brak danych z cechami do przewidywań.")
                 continue
@@ -183,10 +132,6 @@ def main():
                 latest_data_with_features['trade_success'] = (latest_data_with_features['profit'] > 0).astype(int)
             if 'type' in latest_data_with_features.columns:
                 latest_data_with_features['trade_type'] = latest_data_with_features['type'].map({1: 1, 0: 0}).fillna(0)
-
-            # Usunięcie Target_15m, jeśli istnieje
-            if 'Target_15m' in latest_data_with_features.columns:
-                latest_data_with_features = latest_data_with_features.drop('Target_15m', axis=1)
 
             # Dopasowanie kolumn do tych użytych w treningu
             for col in training_columns:
@@ -223,8 +168,16 @@ def main():
                 logging.debug(
                     f"Predykcja: {model_prediction}, Prawdopodobieństwa: {predictions_mean[0].tolist()}, Niepewność: {prediction_confidence:.4f}")
 
-                confidence_threshold = 0.1
-                if prediction_confidence <= confidence_threshold:
+                # Zastosowanie strategii z kryterium Walda i γ-odpornością
+                robust_prediction = apply_strategy(model, scaler, latest_data_with_features.tail(seq_len), gamma=0.1, num_samples=100)
+                if robust_prediction is None:
+                    logging.error("Strategia nie zwróciła predykcji.")
+                    continue
+
+                logging.info(f"Robust prediction from strategy: {robust_prediction}, Model prediction: {model_prediction}, Uncertainty: {prediction_confidence:.4f}")
+
+                # Wykonanie transakcji na podstawie strategii, jeśli nie jest to "Trzymaj" (0)
+                if robust_prediction != 0:  # 1: Kup, -1: Sprzedaj
                     account_info = mt5.account_info()
                     if account_info is None:
                         logging.error("Nie można pobrać informacji o koncie.")
@@ -232,14 +185,15 @@ def main():
                     account_balance = account_info.balance
                     position_size = calculate_position_size(account_balance, symbol, data_m5)
                     if position_size > 0:
-                        execute_trade(model_prediction, symbol, volume=position_size,
+                        # Mapowanie robust_prediction na model_prediction (1 dla Kup, 0 dla Sprzedaj w MT5)
+                        trade_action = 1 if robust_prediction == 1 else 0
+                        execute_trade(trade_action, symbol, volume=position_size,
                                       historical_data=data_m5, confidence=prediction_confidence)
                         check_for_closed_positions(symbol)
                     else:
                         logging.warning("Wielkość pozycji wynosi 0, pomijam transakcję.")
                 else:
-                    logging.info(
-                        f"Robust prediction: brak akcji (predykcja: {model_prediction}, niepewność: {prediction_confidence:.4f})")
+                    logging.info("Robust prediction: brak akcji (trzymaj)")
 
             except Exception as e:
                 logging.error(f"Błąd podczas predykcji lub realizacji transakcji: {str(e)}")
