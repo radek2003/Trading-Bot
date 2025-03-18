@@ -14,19 +14,22 @@ import pandas as pd
 MODEL_FOLDER = "models"
 MODEL_FILENAME = "best_model.pth"
 
-
 # Definicja sieci LSTM z 3 warstwami
 class LSTMModel(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
         super(LSTMModel, self).__init__()
         self.hidden_size = hidden_size
-        self.num_layers = num_layers  # Wartość przekazywana jako 3 podczas inicjalizacji
+        self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.5 if num_layers > 1 else 0)
         self.fc = nn.Linear(hidden_size, output_size)
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        # Inicjalizacja stanów ukrytych i komórkowych dla 3 warstw
+        # Sprawdzenie wymiarów wejścia
+        if x.dim() == 2:
+            x = x.unsqueeze(0)  # Dodaj wymiar batcha, jeśli brakuje
+
+        # Inicjalizacja stanów ukrytych
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
 
@@ -40,7 +43,6 @@ class LSTMModel(nn.Module):
         out = self.fc(out)
         return out
 
-
 def save_model(model, scaler, folder_path, filename):
     """Zapisuje model i scaler do pliku."""
     try:
@@ -51,7 +53,6 @@ def save_model(model, scaler, folder_path, filename):
         logging.info(f"Model zapisany jako {file_path}")
     except Exception as e:
         logging.exception("Problem z zapisywaniem modelu.")
-
 
 def load_model(model, folder_path, filename):
     """Ładuje model i scaler z pliku."""
@@ -67,7 +68,6 @@ def load_model(model, folder_path, filename):
         logging.exception("Problem z ładowaniem modelu.")
         return None, None
 
-
 def mc_dropout_predict(model, X, num_samples=500, device='cpu'):
     """Predykcja z Monte Carlo Dropout dla oceny niepewności."""
     model.train()  # Włącz dropout podczas predykcji
@@ -81,7 +81,6 @@ def mc_dropout_predict(model, X, num_samples=500, device='cpu'):
     mean_pred = predictions.mean(dim=0)
     std_pred = predictions.std(dim=0)
     return mean_pred, std_pred
-
 
 def train_model_with_history(data, folder_path, model_filename):
     """Trenuje model klasyfikacji z robust preprocessingiem i walidacją."""
@@ -118,7 +117,7 @@ def train_model_with_history(data, folder_path, model_filename):
         scaler = RobustScaler()
         X_scaled = scaler.fit_transform(X)
 
-        # Przygotowanie sekwencji dla LSTM (seq_len=10)
+        # Przygotowanie sekwencji dla LSTM (seq_len=30)
         seq_len = 30
         X_seq, y_seq = [], []
         for i in range(len(X_scaled) - seq_len + 1):

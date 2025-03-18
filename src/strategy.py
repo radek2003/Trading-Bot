@@ -4,12 +4,12 @@ import numpy as np
 import torch
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
-
+from ta.trend import VortexIndicator
 
 def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=500):
     """Stosuje strategię z kryterium Walda i γ-odpornością, analizując wszystkie strategie naraz."""
     try:
-        # Obliczenie cech dla wszystkich strategii
+        # Obliczenie cech dla wszystkich strategii, w tym Vortex Indicator
         new_data_with_features = calculate_all_features(new_data)
 
         if new_data_with_features.empty:
@@ -19,6 +19,11 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=500):
         # Przygotowanie danych do predykcji
         X_new = scaler.transform(new_data_with_features.drop('Target', axis=1, errors='ignore').values)
         X_new_tensor = torch.tensor(X_new, dtype=torch.float32)
+
+        # Sprawdzenie i dostosowanie wymiarów
+        if X_new_tensor.dim() == 2:
+            X_new_tensor = X_new_tensor.unsqueeze(0)  # Dodaj wymiar batcha
+            logging.debug(f"Dodano wymiar batcha, nowy kształt X_new_tensor: {X_new_tensor.shape}")
 
         # Ustawienie urządzenia i modelu
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -35,41 +40,75 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=500):
         predictions = np.array(predictions)  # Kształt: (num_samples, batch_size, num_classes)
 
         # Zakładamy batch_size == 1 (jedna sekwencja)
-        predictions = predictions[:, 0, :]  # Kształt: (num_samples, num_classes)
+        predictions = predictions[:, 0, :]  # Kształt: (num_samples, 2)
 
-        # Definicja akcji: 0 - Trzymaj, 1 - Kup, -1 - Sprzedaj
+        # Definicja akcji: 0 - Wstrzymaj się, 1 - Kup, -1 - Sprzedaj
         actions = [0, 1, -1]
 
-        # Obliczenie wyników dla każdej akcji
-        action_scores = []
-        for action in actions:
-            if action == 0:
-                # Trzymaj: wynik neutralny
-                scores = np.zeros(num_samples)
-            elif action == 1:
-                # Kup: wynik = P(Kup) - P(Sprzedaj)
-                scores = predictions[:, 1] - predictions[:, 2]
-            elif action == -1:
-                # Sprzedaj: wynik = P(Sprzedaj) - P(Kup)
-                scores = predictions[:, 2] - predictions[:, 1]
+        # Definicja scenariuszy
+        scenarios = ['MACD', 'Candlestick', 'Moving_Averages', 'Vortex']
 
-            # Obliczenie γ-fraktyla
-            gamma_fractile = np.percentile(scores, gamma * 100)
-            action_scores.append(gamma_fractile)
+        # Obliczenie wyników dla każdej akcji w każdym scenariuszu
+        action_scores = {action: [] for action in actions}
+        for scenario in scenarios:
+            for action in actions:
+                if action == 0:
+                    # Wstrzymaj się: wynik neutralny
+                    scores = np.zeros(num_samples)
+                else:
+                    # Dla modelu binarnego: używamy prawdopodobieństwa "handluj" (klasa 1)
+                    prob_trade = predictions[:, 1]  # Prawdopodobieństwo "handluj"
+                    prob_no_trade = predictions[:, 0]  # Prawdopodobieństwo "nie handluj"
+                    base_score = prob_trade - prob_no_trade  # Różnica między "handluj" a "nie handluj"
+
+                    # Kierunek akcji (kup/sprzedaj) na podstawie scenariusza
+                    if scenario == 'MACD':
+                        macd_signal = new_data_with_features['MACD_Histogram'].iloc[-1]
+                        adjustment = 1 if macd_signal > 0 else -1
+                    elif scenario == 'Candlestick':
+                        bullish_patterns = ['Bullish_Engulfing', 'Hammer', 'Morning_Star']
+                        bearish_patterns = ['Bearish_Engulfing', 'Shooting_Star', 'Evening_Star']
+                        bullish = any(new_data_with_features[pattern].iloc[-1] for pattern in bullish_patterns)
+                        bearish = any(new_data_with_features[pattern].iloc[-1] for pattern in bearish_patterns)
+                        adjustment = 1 if bullish else (-1 if bearish else 0)
+                    elif scenario == 'Moving_Averages':
+                        signal = new_data_with_features['Signal'].iloc[-1]
+                        adjustment = signal
+                    elif scenario == 'Vortex':
+                        vortex_signal = new_data_with_features['Vortex_Diff'].iloc[-1]
+                        adjustment = 1 if vortex_signal > 0 else -1
+
+                    # Dopasowanie akcji: jeśli action=1 (kup), ujemny adjustment zmienia na sprzedaj
+                    if action == 1 and adjustment < 0:
+                        scores = -base_score  # Sprzedaj
+                    elif action == -1 and adjustment > 0:
+                        scores = -base_score  # Kup (odwrócone)
+                    else:
+                        scores = base_score * adjustment  # Normalne przypisanie
+
+                # Zapisanie wyników
+                action_scores[action].append(scores)
+
+        # Obliczenie γ-fraktyla dla każdej akcji w różnych scenariuszach
+        gamma_fractiles = []
+        for action in actions:
+            all_scores = np.concatenate(action_scores[action], axis=0)
+            gamma_fractile = np.percentile(all_scores, gamma * 100)
+            gamma_fractiles.append(gamma_fractile)
 
         # Wybór akcji z najwyższym γ-fraktylem
-        best_action_idx = np.argmax(action_scores)
+        best_action_idx = np.argmax(gamma_fractiles)
         robust_prediction = actions[best_action_idx]
 
+        logging.info(f"Wybrana akcja: {robust_prediction} (γ-fraktyle: {gamma_fractiles})")
         return robust_prediction
 
     except Exception as e:
         logging.exception("Problem z zastosowaniem strategii.")
         return None
 
-
 def calculate_all_features(data):
-    """Oblicza cechy dla wszystkich strategii i łączy je w jeden DataFrame."""
+    """Oblicza cechy dla wszystkich strategii, w tym Vortex Indicator."""
     try:
         data_with_features = data.copy()
 
@@ -82,12 +121,26 @@ def calculate_all_features(data):
         # Obliczenie cech średnich kroczących
         data_with_features = calculate_robust_moving_averages(data_with_features)
 
+        # Obliczenie Vortex Indicator
+        data_with_features = calculate_vortex_indicator(data_with_features)
+
         return data_with_features
 
     except Exception as e:
         logging.exception("Problem z obliczaniem wszystkich cech.")
         return pd.DataFrame()
 
+def calculate_vortex_indicator(data):
+    """Oblicza Vortex Indicator."""
+    try:
+        vortex = VortexIndicator(high=data['high'], low=data['low'], close=data['close'], window=14)
+        data['Vortex_Pos'] = vortex.vortex_indicator_pos()
+        data['Vortex_Neg'] = vortex.vortex_indicator_neg()
+        data['Vortex_Diff'] = data['Vortex_Pos'] - data['Vortex_Neg']
+        return data
+    except Exception as e:
+        logging.exception("Problem z obliczaniem Vortex Indicator.")
+        return data
 
 def calculate_robust_moving_averages(data):
     """Oblicza odporne średnie kroczące (mediana) i sygnały."""
@@ -97,7 +150,6 @@ def calculate_robust_moving_averages(data):
 
     try:
         data = data.copy()
-        # Dynamiczne okna w zależności od liczby dostępnych danych
         ma20_window = min(20, len(data))
         ma60_window = min(60, len(data))
         ma100_window = min(100, len(data))
@@ -114,7 +166,6 @@ def calculate_robust_moving_averages(data):
     except Exception as e:
         logging.exception("Problem z obliczaniem robust średnich kroczących.")
         return pd.DataFrame()
-
 
 def calculate_robust_macd(df):
     """Oblicza odporny MACD z ważoną medianą zamiast EMA."""
@@ -134,7 +185,6 @@ def calculate_robust_macd(df):
         logging.exception("Problem z obliczaniem robust MACD.")
         return pd.DataFrame()
 
-
 def calculate_candlestick_patterns(data):
     """Dodaje cechy związane z formacjami świec z robust podejściem i nowymi wskaźnikami."""
     try:
@@ -150,7 +200,7 @@ def calculate_candlestick_patterns(data):
         trend_up = data['close'] > data['close'].shift(1)
         trend_down = data['close'] < data['close'].shift(1)
 
-        # --- Cechy dla 5 minut ---
+        # Formacje 5-minutowe
         data['Bullish_Engulfing'] = ((data['open'] < data['close'].shift(1)) &
                                      (data['close'] > data['open'].shift(1)) &
                                      (data['open'] <= data['close'].shift(1)) &
@@ -216,7 +266,7 @@ def calculate_candlestick_patterns(data):
         data['Sprzedaj_5m'] = data['Czerwona_Swieca'] & data['Czerwona_Swieca'].shift(1)
         data['Target'] = (data['close'].shift(-1) > data['close']).astype(int)
 
-        # --- Cechy dla 15 minut (tylko jeśli wystarczająco danych) ---
+        # Formacje 15-minutowe (jeśli wystarczająco danych)
         if len(data) >= 15:
             data['Bullish_Engulfing_15m'] = ((data['open'] < data['close'].shift(3)) &
                                              (data['close'] > data['open'].shift(3)) &
@@ -292,16 +342,13 @@ def calculate_candlestick_patterns(data):
                         'Czerwona_Swieca_15m', 'Kupuj_15m', 'Sprzedaj_15m', 'Target_15m']:
                 data[col] = 0
 
-        # --- Nowe wskaźniki ---
-        # RSI
+        # Nowe wskaźniki
         rsi = RSIIndicator(data['close'], window=14)
-        data['RSI'] = rsi.rsi() if len(data) >= 14 else 0  # Fallback na 0 jeśli za mało danych
+        data['RSI'] = rsi.rsi() if len(data) >= 14 else 0
 
-        # ATR
         atr = AverageTrueRange(data['high'], data['low'], data['close'], window=14)
-        data['ATR'] = atr.average_true_range() if len(data) >= 14 else 0  # Fallback na 0 jeśli za mało danych
+        data['ATR'] = atr.average_true_range() if len(data) >= 14 else 0
 
-        # Filtrowane formacje z ATR
         data['Bullish_Engulfing_Filtered'] = data['Bullish_Engulfing'] & (data['ATR'] > data['ATR'].shift(1))
         data['Bearish_Engulfing_Filtered'] = data['Bearish_Engulfing'] & (data['ATR'] > data['ATR'].shift(1))
 
