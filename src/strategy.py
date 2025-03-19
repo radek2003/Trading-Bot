@@ -6,132 +6,110 @@ from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 from ta.trend import VortexIndicator
 
-def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=500):
-    """Stosuje strategię z kryterium Walda i γ-odpornością, analizując wszystkie strategie naraz."""
+
+def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
     try:
-        # Obliczenie cech dla wszystkich strategii, w tym Vortex Indicator
         new_data_with_features = calculate_all_features(new_data)
 
         if new_data_with_features.empty:
-            logging.error("Brak danych z cechami do prognozowania.")
+            logging.error("Brak danych do analizy.")
             return None
 
-        # Przygotowanie danych do predykcji
-        X_new = scaler.transform(new_data_with_features.drop('Target', axis=1, errors='ignore').values)
-        X_new_tensor = torch.tensor(X_new, dtype=torch.float32)
+        if not hasattr(scaler, 'feature_names'):
+            logging.error("Brak informacji o oczekiwanych cechach!")
+            return None
 
-        # Sprawdzenie i dostosowanie wymiarów
-        if X_new_tensor.dim() == 2:
-            X_new_tensor = X_new_tensor.unsqueeze(0)  # Dodaj wymiar batcha
-            logging.debug(f"Dodano wymiar batcha, nowy kształt X_new_tensor: {X_new_tensor.shape}")
+        expected_features = scaler.feature_names
+        missing = list(set(expected_features) - set(new_data_with_features.columns))
 
-        # Ustawienie urządzenia i modelu
+        if missing:
+            logging.error(f"Brakujące cechy: {missing}")
+            return None
+
+        features = new_data_with_features[expected_features]
+        X_new = scaler.transform(features.values)
+        X_new_tensor = torch.tensor(X_new, dtype=torch.float32).unsqueeze(0)
+
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model.to(device)
-        model.train()  # Włączamy tryb trenowania dla Monte Carlo Dropout
 
-        # Monte Carlo Dropout: wielokrotne predykcje dla uzyskania rozkładu
         predictions = []
+        model.train()
         for _ in range(num_samples):
             with torch.no_grad():
                 output = model(X_new_tensor.to(device))
-                probabilities = torch.softmax(output, dim=1)
-                predictions.append(probabilities.cpu().numpy())
-        predictions = np.array(predictions)  # Kształt: (num_samples, batch_size, num_classes)
+                predictions.append(torch.softmax(output, dim=1).cpu().numpy())
 
-        # Zakładamy batch_size == 1 (jedna sekwencja)
-        predictions = predictions[:, 0, :]  # Kształt: (num_samples, 2)
+        predictions = np.array(predictions)[:, 0, :]
 
-        # Definicja akcji: 0 - Wstrzymaj się, 1 - Kup, -1 - Sprzedaj
         actions = [0, 1, -1]
-
-        # Definicja scenariuszy
         scenarios = ['MACD', 'Candlestick', 'Moving_Averages', 'Vortex']
-
-        # Obliczenie wyników dla każdej akcji w każdym scenariuszu
         action_scores = {action: [] for action in actions}
+
+        current_sentiment = new_data_with_features['sentiment'].iloc[-1]
+        sentiment_factor = 1 + (current_sentiment * 0.3)
+
         for scenario in scenarios:
             for action in actions:
                 if action == 0:
-                    # Wstrzymaj się: wynik neutralny
                     scores = np.zeros(num_samples)
                 else:
-                    # Dla modelu binarnego: używamy prawdopodobieństwa "handluj" (klasa 1)
-                    prob_trade = predictions[:, 1]  # Prawdopodobieństwo "handluj"
-                    prob_no_trade = predictions[:, 0]  # Prawdopodobieństwo "nie handluj"
-                    base_score = prob_trade - prob_no_trade  # Różnica między "handluj" a "nie handluj"
+                    prob_trade = predictions[:, 1]
+                    prob_no_trade = predictions[:, 0]
+                    base_score = (prob_trade - prob_no_trade) * sentiment_factor
 
-                    # Kierunek akcji (kup/sprzedaj) na podstawie scenariusza
                     if scenario == 'MACD':
-                        macd_signal = new_data_with_features['MACD_Histogram'].iloc[-1]
-                        adjustment = 1 if macd_signal > 0 else -1
+                        adj = 1 if new_data_with_features['MACD_Histogram'].iloc[-1] > 0 else -1
                     elif scenario == 'Candlestick':
-                        bullish_patterns = ['Bullish_Engulfing', 'Hammer', 'Morning_Star']
-                        bearish_patterns = ['Bearish_Engulfing', 'Shooting_Star', 'Evening_Star']
-                        bullish = any(new_data_with_features[pattern].iloc[-1] for pattern in bullish_patterns)
-                        bearish = any(new_data_with_features[pattern].iloc[-1] for pattern in bearish_patterns)
-                        adjustment = 1 if bullish else (-1 if bearish else 0)
+                        bull = any(new_data_with_features[p].iloc[-1] for p in ['Bullish_Engulfing', 'Hammer'])
+                        adj = 1 if bull else -1
                     elif scenario == 'Moving_Averages':
-                        signal = new_data_with_features['Signal'].iloc[-1]
-                        adjustment = signal
+                        adj = new_data_with_features['Signal'].iloc[-1]
                     elif scenario == 'Vortex':
-                        vortex_signal = new_data_with_features['Vortex_Diff'].iloc[-1]
-                        adjustment = 1 if vortex_signal > 0 else -1
+                        adj = 1 if new_data_with_features['Vortex_Diff'].iloc[-1] > 0 else -1
 
-                    # Dopasowanie akcji: jeśli action=1 (kup), ujemny adjustment zmienia na sprzedaj
-                    if action == 1 and adjustment < 0:
-                        scores = -base_score  # Sprzedaj
-                    elif action == -1 and adjustment > 0:
-                        scores = -base_score  # Kup (odwrócone)
-                    else:
-                        scores = base_score * adjustment  # Normalne przypisanie
+                    scores = base_score * adj if (action == 1 and adj > 0) or (
+                                action == -1 and adj < 0) else -base_score
 
-                # Zapisanie wyników
                 action_scores[action].append(scores)
 
-        # Obliczenie γ-fraktyla dla każdej akcji w różnych scenariuszach
-        gamma_fractiles = []
-        for action in actions:
-            all_scores = np.concatenate(action_scores[action], axis=0)
-            gamma_fractile = np.percentile(all_scores, gamma * 100)
-            gamma_fractiles.append(gamma_fractile)
+        gamma_percentiles = [np.percentile(np.concatenate(v), gamma * 100) for v in action_scores.values()]
+        best_action = actions[np.argmax(gamma_percentiles)]
 
-        # Wybór akcji z najwyższym γ-fraktylem
-        best_action_idx = np.argmax(gamma_fractiles)
-        robust_prediction = actions[best_action_idx]
-
-        logging.info(f"Wybrana akcja: {robust_prediction} (γ-fraktyle: {gamma_fractiles})")
-        return robust_prediction
+        logging.info(f"Akcja: {best_action} | Sentyment: {current_sentiment:.2f}")
+        return best_action
 
     except Exception as e:
-        logging.exception("Problem z zastosowaniem strategii.")
+        logging.error(f"Błąd strategii: {str(e)}")
         return None
 
+
 def calculate_all_features(data):
-    """Oblicza cechy dla wszystkich strategii, w tym Vortex Indicator."""
     try:
-        data_with_features = data.copy()
+        original_time = data['time'].copy() if 'time' in data.columns else None
+        data = data.copy()
+        data = data.drop(columns=['symbol'], errors='ignore')
 
-        # Obliczenie cech MACD
-        data_with_features = calculate_robust_macd(data_with_features)
+        data = calculate_robust_macd(data)
+        data = calculate_candlestick_patterns(data)
+        data = calculate_robust_moving_averages(data)
+        data = calculate_vortex_indicator(data)
 
-        # Obliczenie cech formacji świecowych
-        data_with_features = calculate_candlestick_patterns(data_with_features)
+        if 'sentiment' not in data.columns:
+            data['sentiment'] = 0.0
+            logging.warning("Brak sentymentu - ustawiono 0.0")
 
-        # Obliczenie cech średnich kroczących
-        data_with_features = calculate_robust_moving_averages(data_with_features)
+        if original_time is not None:
+            data['time'] = original_time
 
-        # Obliczenie Vortex Indicator
-        data_with_features = calculate_vortex_indicator(data_with_features)
-
-        return data_with_features
-
+        return data
     except Exception as e:
-        logging.exception("Problem z obliczaniem wszystkich cech.")
+        logging.error(f"Błąd obliczania cech: {str(e)}")
         return pd.DataFrame()
 
+
+
 def calculate_vortex_indicator(data):
-    """Oblicza Vortex Indicator."""
     try:
         vortex = VortexIndicator(high=data['high'], low=data['low'], close=data['close'], window=14)
         data['Vortex_Pos'] = vortex.vortex_indicator_pos()
@@ -143,7 +121,6 @@ def calculate_vortex_indicator(data):
         return data
 
 def calculate_robust_moving_averages(data):
-    """Oblicza odporne średnie kroczące (mediana) i sygnały."""
     if data.empty:
         logging.error("Brak danych do obliczeń.")
         return pd.DataFrame()
@@ -168,7 +145,6 @@ def calculate_robust_moving_averages(data):
         return pd.DataFrame()
 
 def calculate_robust_macd(df):
-    """Oblicza odporny MACD z ważoną medianą zamiast EMA."""
     if df.empty:
         logging.error("Brak danych do obliczeń MACD.")
         return pd.DataFrame()
@@ -183,7 +159,7 @@ def calculate_robust_macd(df):
         return df
     except Exception as e:
         logging.exception("Problem z obliczaniem robust MACD.")
-        return pd.DataFrame()
+        return df
 
 def calculate_candlestick_patterns(data):
     """Dodaje cechy związane z formacjami świec z robust podejściem i nowymi wskaźnikami."""
