@@ -15,13 +15,30 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
             logging.error("Brak danych do analizy.")
             return None
 
+        # 1. Pobierz ostatnią cenę
+        current_price = new_data_with_features['close'].iloc[-1] if 'close' in new_data_with_features.columns else 0.0
+
+        # 2. Pobierz wartości ze wskaźników jako SKALARY
+        try:
+            distribution_signal = calculate_price_distribution(new_data_with_features, current_price)
+        except Exception as e:
+            logging.error(f"Błąd analizy rozkładu cen: {str(e)}")
+            distribution_signal = 0
+
+        try:
+            bb_pct = new_data_with_features['BB_Pct'].iloc[-1] if 'BB_Pct' in new_data_with_features.columns else 0.5
+        except KeyError:
+            bb_pct = 0.5
+            logging.warning("Brak kolumny BB_Pct - użyto domyślnej wartości 0.5")
+
+        # 3. Sprawdź poprawność skalera
         if not hasattr(scaler, 'feature_names'):
             logging.error("Brak informacji o oczekiwanych cechach!")
             return None
 
+        # 4. Oryginalna logika strategii z poprawkami
         expected_features = scaler.feature_names
         missing = list(set(expected_features) - set(new_data_with_features.columns))
-
         if missing:
             logging.error(f"Brakujące cechy: {missing}")
             return None
@@ -43,10 +60,10 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
         predictions = np.array(predictions)[:, 0, :]
 
         actions = [0, 1, -1]
-        scenarios = ['MACD', 'Candlestick', 'Moving_Averages', 'Vortex']
+        scenarios = ['MACD', 'Candlestick', 'Moving_Averages', 'Vortex', 'Bollinger', 'PriceDistribution']
         action_scores = {action: [] for action in actions}
 
-        current_sentiment = new_data_with_features['sentiment'].iloc[-1]
+        current_sentiment = new_data_with_features['sentiment'].iloc[-1] if 'sentiment' in new_data_with_features.columns else 0.0
         sentiment_factor = 1 + (current_sentiment * 0.3)
 
         for scenario in scenarios:
@@ -58,31 +75,38 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
                     prob_no_trade = predictions[:, 0]
                     base_score = (prob_trade - prob_no_trade) * sentiment_factor
 
+                    # Upewnij się, że wszystkie wartości są SKALARAMI
                     if scenario == 'MACD':
                         adj = 1 if new_data_with_features['MACD_Histogram'].iloc[-1] > 0 else -1
                     elif scenario == 'Candlestick':
-                        bull = any(new_data_with_features[p].iloc[-1] for p in ['Bullish_Engulfing', 'Hammer'])
+                        bull = any([
+                            new_data_with_features[p].iloc[-1]
+                            for p in ['Bullish_Engulfing', 'Hammer']
+                            if p in new_data_with_features.columns
+                        ])
                         adj = 1 if bull else -1
                     elif scenario == 'Moving_Averages':
-                        adj = new_data_with_features['Signal'].iloc[-1]
+                        adj = new_data_with_features['Signal'].iloc[-1] if 'Signal' in new_data_with_features.columns else 0
                     elif scenario == 'Vortex':
-                        adj = 1 if new_data_with_features['Vortex_Diff'].iloc[-1] > 0 else -1
+                        adj = 1 if new_data_with_features['Vortex_Diff'].iloc[-1] > 0 else -1 if 'Vortex_Diff' in new_data_with_features.columns else 0
+                    elif scenario == 'Bollinger':
+                        adj = 1.5 if bb_pct > 0.8 else (-1.5 if bb_pct < 0.2 else 1.0)
+                    elif scenario == 'PriceDistribution':
+                        adj = distribution_signal * 1.2
 
-                    scores = base_score * adj if (action == 1 and adj > 0) or (
-                                action == -1 and adj < 0) else -base_score
+                    scores = base_score * adj if (action == 1 and adj > 0) or (action == -1 and adj < 0) else -base_score
 
                 action_scores[action].append(scores)
 
         gamma_percentiles = [np.percentile(np.concatenate(v), gamma * 100) for v in action_scores.values()]
         best_action = actions[np.argmax(gamma_percentiles)]
 
-        logging.info(f"Akcja: {best_action} | Sentyment: {current_sentiment:.2f}")
+        logging.info(f"Akcja: {best_action} | BB%: {bb_pct:.2f} | Distrib: {distribution_signal}")
         return best_action
 
     except Exception as e:
         logging.error(f"Błąd strategii: {str(e)}")
         return None
-
 
 def calculate_all_features(data):
     try:
@@ -90,10 +114,12 @@ def calculate_all_features(data):
         data = data.copy()
         data = data.drop(columns=['symbol'], errors='ignore')
 
+        # Dodaj nowe wskaźniki
         data = calculate_robust_macd(data)
         data = calculate_candlestick_patterns(data)
         data = calculate_robust_moving_averages(data)
         data = calculate_vortex_indicator(data)
+        data = calculate_bollinger_bands(data)  # Nowy wskaźnik
 
         if 'sentiment' not in data.columns:
             data['sentiment'] = 0.0
@@ -106,6 +132,68 @@ def calculate_all_features(data):
     except Exception as e:
         logging.error(f"Błąd obliczania cech: {str(e)}")
         return pd.DataFrame()
+
+
+def calculate_price_distribution(data, current_price):
+    """Analizuje rozkład cen z ostatnich 2 tygodni i 3 dni."""
+    try:
+        if 'time' not in data.columns or len(data) < 15:
+            logging.warning("Brak danych czasowych lub za mało rekordów")
+            return 0
+
+        data = data.copy()
+        data['time'] = pd.to_datetime(data['time'])
+        data.set_index('time', inplace=True, drop=False)
+
+        # Analiza 2-tygodniowa
+        two_week_data = data.last('14D')['close']
+        two_week_low = two_week_data.quantile(0.1) if len(two_week_data) >= 5 else np.nan
+        two_week_high = two_week_data.quantile(0.9) if len(two_week_data) >= 5 else np.nan
+
+        # Analiza 3-dniowa
+        three_day_data = data.last('3D')['close']
+        three_day_low = three_day_data.quantile(0.1) if len(three_day_data) >= 3 else np.nan
+        three_day_high = three_day_data.quantile(0.9) if len(three_day_data) >= 3 else np.nan
+
+        # Warunki z zabezpieczeniem przed NaN
+        sell_condition = (
+            not np.isnan(two_week_high) and
+            not np.isnan(three_day_high) and
+            (current_price > two_week_high) and
+            (current_price > three_day_high)
+        )
+
+        buy_condition = (
+            not np.isnan(two_week_low) and
+            not np.isnan(three_day_low) and
+            (current_price < two_week_low) and
+            (current_price < three_day_low)
+        )
+
+        return -1 if sell_condition else 1 if buy_condition else 0
+
+    except Exception as e:
+        logging.error(f"Błąd analizy rozkładu: {str(e)}")
+        return 0
+
+
+def calculate_bollinger_bands(data, window=20, num_std=2):
+    """Oblicza Bollinger Bands z robustną obsługą błędów."""
+    try:
+        if len(data) < window:
+            logging.warning(f"Za mało danych ({len(data)} rekordów) do obliczenia Bollinger Bands")
+            return data
+
+        data = data.copy()
+        data['BB_MA'] = data['close'].rolling(window=window, min_periods=1).mean()
+        data['BB_STD'] = data['close'].rolling(window=window, min_periods=1).std()
+        data['BB_Upper'] = data['BB_MA'] + (data['BB_STD'] * num_std)
+        data['BB_Lower'] = data['BB_MA'] - (data['BB_STD'] * num_std)
+        data['BB_Pct'] = (data['close'] - data['BB_Lower']) / (data['BB_Upper'] - data['BB_Lower'] + 1e-8)
+        return data
+    except Exception as e:
+        logging.error(f"Błąd Bollinger Bands: {str(e)}")
+        return data
 
 
 
