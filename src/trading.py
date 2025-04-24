@@ -190,7 +190,7 @@ def adjust_sl_tp_robustly(symbol, atr_window=14, atr_multiplier_sl=2.5, atr_mult
             # Robust volatility (MAD) na podstawie ostatnich zmian cen
             price_changes = historical_data['close'].pct_change().dropna()
             mad = np.median(np.abs(price_changes - price_changes.median())) * 1.4826
-            volatility_adjustment = 1 + mad * 100  # Skalowanie zmienności dla robustności
+            volatility_adjustment = 1 + mad * 100
 
             # Iteracja po wszystkich otwartych pozycjach
             for position in positions:

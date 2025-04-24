@@ -6,21 +6,92 @@ from ta.volatility import AverageTrueRange
 import requests
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
+import time
+import sys
 
 NEWS_API_KEY = "07f95978137e4cd0ba2236bff4e304ad"
 
 tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
 model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
 
+# Cache for news and sentiment scores
+news_cache = {}
+last_news_fetch = {}
+sentiment_cache = {}
+
+# Sentiment mapping for user input
+SENTIMENT_MAPPING = {
+    "weak": -0.5,  # Negative sentiment
+    "average": 0.0,  # Neutral sentiment
+    "high": 0.5  # Positive sentiment
+}
+
+
+def get_user_sentiment(symbol):
+    """Prompt the user to select a sentiment value for the symbol."""
+    if not sys.stdin.isatty():  # Check if running in a non-interactive environment
+        logging.warning(
+            f"Non-interactive environment detected. Cannot prompt for sentiment for {symbol}. Defaulting to 0.0")
+        return 0.0
+
+    prompt = (
+        f"Unable to fetch news for {symbol} and no previous sentiment available.\n"
+        "Please select a sentiment value (weak, average, high): "
+    )
+    while True:
+        try:
+            user_input = input(prompt).strip().lower()
+            if user_input in SENTIMENT_MAPPING:
+                sentiment_value = SENTIMENT_MAPPING[user_input]
+                logging.info(f"User selected sentiment '{user_input}' ({sentiment_value}) for {symbol}")
+                return sentiment_value
+            else:
+                print(f"Invalid input. Please choose one of: weak, average, high")
+        except KeyboardInterrupt:
+            logging.warning(f"User interrupted input for {symbol}. Defaulting to 0.0")
+            return 0.0
+        except Exception as e:
+            logging.error(f"Error getting user input for {symbol}: {str(e)}. Defaulting to 0.0")
+            return 0.0
+
+
 def fetch_financial_news(symbol="EURUSD", max_articles=3):
+    """Fetch financial news with caching and rate limit handling."""
+    global news_cache, last_news_fetch
+    current_time = time.time()
+
+    # Check cache
+    if symbol in news_cache and symbol in last_news_fetch:
+        if current_time - last_news_fetch[symbol] < 3600:  # Cache valid for 1 hour
+            logging.debug(f"Using cached news for {symbol}")
+            return news_cache[symbol]
+
     try:
         url = f"https://newsapi.org/v2/everything?q={symbol}&language=en&sortBy=publishedAt&pageSize={max_articles}&apiKey={NEWS_API_KEY}"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        return response.json().get("articles", [])
+        articles = response.json().get("articles", [])
+        news_cache[symbol] = articles
+        last_news_fetch[symbol] = current_time
+        logging.info(f"Fetched news for {symbol}")
+        return articles
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 429:
+            logging.warning(f"Rate limit hit for {symbol}. Skipping retries and using sentiment fallback.")
+            news_cache[symbol] = []
+            last_news_fetch[symbol] = current_time
+            return []
+        else:
+            logging.error(f"Error fetching news for {symbol}: {str(e)}")
+            news_cache[symbol] = []
+            last_news_fetch[symbol] = current_time
+            return []
     except Exception as e:
-        logging.error(f"Błąd pobierania newsów: {str(e)}")
+        logging.error(f"Error fetching news for {symbol}: {str(e)}")
+        news_cache[symbol] = []
+        last_news_fetch[symbol] = current_time
         return []
+
 
 def analyze_sentiment(text):
     try:
@@ -29,34 +100,57 @@ def analyze_sentiment(text):
         probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1)
         return probabilities.detach().numpy()[0]
     except Exception as e:
-        logging.error(f"Błąd analizy sentymentu: {str(e)}")
+        logging.error(f"Error analyzing sentiment: {str(e)}")
         return [0.33, 0.33, 0.34]
 
+
 def add_sentiment_features(df, symbol):
+    global sentiment_cache
     try:
         articles = fetch_financial_news(symbol)
         if not articles:
-            df["sentiment"] = 0.0
+            # If news fetching failed (e.g., rate limit), use the last sentiment score if available
+            if symbol in sentiment_cache:
+                logging.info(
+                    f"Rate limit exceeded for {symbol}. Reusing last sentiment score: {sentiment_cache[symbol]}")
+                df["sentiment"] = sentiment_cache[symbol]
+            else:
+                # Prompt user for sentiment input
+                sentiment_value = get_user_sentiment(symbol)
+                sentiment_cache[symbol] = sentiment_value  # Store user-selected sentiment
+                df["sentiment"] = sentiment_value
             return df
 
         sentiment_scores = []
         for article in articles:
             text = f"{article.get('title', '')} {article.get('description', '')}"
             scores = analyze_sentiment(text)
-            sentiment_score = scores[2] - scores[0]
+            sentiment_score = scores[2] - scores[0]  # Positive - Negative
             sentiment_scores.append(sentiment_score)
 
         avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
+        # Store the new sentiment score in the cache
+        sentiment_cache[symbol] = avg_sentiment
+        logging.info(f"Computed new sentiment score for {symbol}: {avg_sentiment}")
         df["sentiment"] = avg_sentiment
         return df
     except Exception as e:
-        logging.error(f"Błąd dodawania sentymentu: {str(e)}")
-        df["sentiment"] = 0.0
+        logging.error(f"Error adding sentiment for {symbol}: {str(e)}")
+        # On general failure, use the last sentiment score if available
+        if symbol in sentiment_cache:
+            logging.info(f"Error occurred for {symbol}. Reusing last sentiment score: {sentiment_cache[symbol]}")
+            df["sentiment"] = sentiment_cache[symbol]
+        else:
+            # Prompt user for sentiment input
+            sentiment_value = get_user_sentiment(symbol)
+            sentiment_cache[symbol] = sentiment_value  # Store user-selected sentiment
+            df["sentiment"] = sentiment_value
         return df
+
 
 def test_trade_history(days_back=200):
     if not mt5.terminal_info():
-        logging.error("MT5 nie jest zainicjalizowane.")
+        logging.error("MT5 is not initialized.")
         return pd.DataFrame()
 
     from_date = datetime.now() - timedelta(days=days_back)
@@ -64,7 +158,7 @@ def test_trade_history(days_back=200):
 
     history = mt5.history_orders_get(from_date, to_date)
     if history is None or len(history) == 0:
-        logging.warning(f"Brak zleceń w historii od {from_date} do {to_date}.")
+        logging.warning(f"No orders in history from {from_date} to {to_date}.")
         return pd.DataFrame()
 
     deals = pd.DataFrame([{
@@ -77,11 +171,12 @@ def test_trade_history(days_back=200):
     deals['time'] = pd.to_datetime(deals['time'], unit='s')
     return deals
 
-def fetch_historical_data(symbol, bars_m5=90000, bars_m15=90000):
+
+def fetch_historical_data(symbol, bars_m5=50000, bars_m15=50000):
     try:
         rates_m5 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, bars_m5)
         if rates_m5 is None or len(rates_m5) == 0:
-            logging.error("Brak danych historycznych dla 5m.")
+            logging.error(f"No historical data for 5m for {symbol}.")
             df_m5 = pd.DataFrame()
         else:
             df_m5 = pd.DataFrame(rates_m5)
@@ -96,7 +191,7 @@ def fetch_historical_data(symbol, bars_m5=90000, bars_m15=90000):
 
         rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, bars_m15)
         if rates_m15 is None or len(rates_m15) == 0:
-            logging.error("Brak danych historycznych dla 15m.")
+            logging.error(f"No historical data for 15m for {symbol}.")
             df_m15 = pd.DataFrame()
         else:
             df_m15 = pd.DataFrame(rates_m15)
@@ -111,5 +206,5 @@ def fetch_historical_data(symbol, bars_m5=90000, bars_m15=90000):
 
         return df_m5, df_m15
     except Exception as e:
-        logging.exception("Problem z pobieraniem danych historycznych.")
+        logging.error(f"Problem fetching historical data for {symbol}: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
