@@ -1,0 +1,8 @@
+MetaTrader5
+logging
+pandas
+time
+os
+torch
+numpy
+ta
