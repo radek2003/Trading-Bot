@@ -291,5 +291,5 @@ def main():
 
 
 if __name__ == "__main__":
-    pd.set_option('future.no_silent_downcasting', True)
+    #pd.set_option('future.no_silent_downcasting', True)
     main()
