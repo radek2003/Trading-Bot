@@ -13,7 +13,9 @@ from src.risk_management import calculate_position_size
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', 
+                    filename='logs/trading_bot.log',       
+                    filemode='a')                 
 
 # Cache for news to avoid rate limiting
 news_cache = {}
@@ -68,7 +70,7 @@ def main():
         return
 
     symbols = ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCHF"]
-    min_candles_for_patterns = 200
+    min_candles_for_patterns = 150
     seq_len = 30
 
     # Set script_dir robustly
@@ -278,8 +280,8 @@ def main():
                     logging.error(f"Error during prediction or trade execution for {symbol}: {str(e)}")
                     continue
 
-            logging.info("Waiting 15 minutes before next iteration...")
-            time.sleep(900)
+            logging.info("Waiting 60 secunds before next iteration...")
+            time.sleep(60)
 
     except KeyboardInterrupt:
         logging.info("Bot stopped by user.")

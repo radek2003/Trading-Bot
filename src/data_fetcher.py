@@ -172,7 +172,7 @@ def test_trade_history(days_back=200):
     return deals
 
 
-def fetch_historical_data(symbol, bars_m5=50000, bars_m15=50000):
+def fetch_historical_data(symbol, bars_m5=200, bars_m15=200):
     try:
         rates_m5 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, bars_m5)
         if rates_m5 is None or len(rates_m5) == 0:

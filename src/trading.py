@@ -6,6 +6,9 @@ import time
 import pandas as pd
 from ta.volatility import AverageTrueRange
 import threading
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)  
+
 
 def execute_trade(model_prediction, symbol, volume, historical_data=None, confidence=None):
     try:
