@@ -261,3 +261,6 @@ def integrate_with_main(symbol="EURUSD"):
     sl_tp_thread.start()
     logging.info("Uruchomiono wątek do dynamicznej modyfikacji SL/TP")
     return sl_tp_thread
+
+if __name__ == "__main__":
+    pass

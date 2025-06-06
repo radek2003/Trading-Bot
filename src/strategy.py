@@ -472,3 +472,6 @@ def calculate_candlestick_patterns(data):
     except Exception as e:
         logging.error(f"Błąd w obliczaniu formacji świecowych: {str(e)}")
         return data
+    
+if __name__ == "__main__":
+    pass

@@ -64,3 +64,6 @@ def calculate_position_size(account_balance, symbol, historical_data=None):
     except Exception as e:
         logging.exception("Problem z obliczaniem robust wielkości pozycji.")
         return 0
+
+if __name__ == "__main__":
+    pass

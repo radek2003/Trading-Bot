@@ -219,3 +219,6 @@ def train_model_with_history(data, folder_path, model_filename):
     except Exception as e:
         logging.error(f"Błąd treningu: {str(e)}")
         return None, None, None
+    
+if __name__ == "__main__":
+    pass

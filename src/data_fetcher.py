@@ -187,7 +187,7 @@ def fetch_historical_data(symbol, bars_m5=200, bars_m15=200):
             price_changes_m5 = df_m5['close'].diff().abs()
             threshold_m5 = 3 * df_m5['atr']
             df_m5 = df_m5[price_changes_m5 <= threshold_m5]
-            df_m5 = add_sentiment_features(df_m5, symbol)
+            #df_m5 = add_sentiment_features(df_m5, symbol)
 
         rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, bars_m15)
         if rates_m15 is None or len(rates_m15) == 0:
@@ -202,9 +202,14 @@ def fetch_historical_data(symbol, bars_m5=200, bars_m15=200):
             price_changes_m15 = df_m15['close'].diff().abs()
             threshold_m15 = 3 * df_m15['atr']
             df_m15 = df_m15[price_changes_m15 <= threshold_m15]
-            df_m15 = add_sentiment_features(df_m15, symbol)
+            #df_m15 = add_sentiment_features(df_m15, symbol)
 
         return df_m5, df_m15
     except Exception as e:
         logging.error(f"Problem fetching historical data for {symbol}: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
+
+if __name__ == "__main__":
+
+    #(test_trade_history(days_back=200))
+    print(fetch_historical_data('EURUSD', bars_m5=200, bars_m15=200))
