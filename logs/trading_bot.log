@@ -112,3 +112,38 @@ USDCHF -0.733129  0.716885 -0.636586 -0.460287  1.000000
 2025-06-06 16:09:47,591 - INFO - Akcja: 1 | BB%: 0.75 | Distrib: 0
 2025-06-06 16:09:47,591 - INFO - Robust prediction for USDJPY: 1, Model prediction: 1, Uncertainty: 0.0075
 2025-06-06 16:09:47,592 - INFO - Robust position size: 0.49, Volatility: 0.0001555151246326674
+2025-06-06 16:12:32,741 - ERROR - B³¹d wykonania transakcji: 10004, (1, 'Success')
+2025-06-06 16:12:32,743 - INFO - Processing GBPUSD
+2025-06-06 16:12:32,831 - INFO - Computed new sentiment score for GBPUSD: -0.7419507503509521
+2025-06-06 16:12:32,905 - INFO - Computed new sentiment score for GBPUSD: -0.7419507503509521
+2025-06-06 16:12:32,961 - WARNING - No orders in history from 2024-11-18 16:12:32.961517 to 2025-06-06 16:12:32.961517.
+2025-06-06 16:12:33,463 - INFO - Prediction for GBPUSD: 1, Probabilities: [0.43932798504829407, 0.5606719255447388], Uncertainty: 0.0022
+2025-06-06 16:12:33,500 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:12:33,800 - INFO - Akcja: 1 | BB%: 0.73 | Distrib: 0
+2025-06-06 16:12:33,800 - INFO - Robust prediction for GBPUSD: 1, Model prediction: 1, Uncertainty: 0.0022
+2025-06-06 16:12:33,801 - INFO - Robust position size: 49.5, Volatility: 9.854188996698438e-05
+2025-06-06 16:12:33,804 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2025-06-06 16:12:33,804 - INFO - Processing AUDUSD
+2025-06-06 16:12:33,808 - INFO - Rate limit exceeded for AUDUSD. Reusing last sentiment score: 0.5
+2025-06-06 16:12:33,812 - INFO - Rate limit exceeded for AUDUSD. Reusing last sentiment score: 0.5
+2025-06-06 16:12:33,856 - WARNING - No orders in history from 2024-11-18 16:12:33.856688 to 2025-06-06 16:12:33.856688.
+2025-06-06 16:12:34,180 - INFO - Prediction for AUDUSD: 1, Probabilities: [0.45131948590278625, 0.5486804246902466], Uncertainty: 0.0017
+2025-06-06 16:12:34,216 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:12:34,526 - INFO - Akcja: 1 | BB%: 0.55 | Distrib: 0
+2025-06-06 16:12:34,526 - INFO - Robust prediction for AUDUSD: 1, Model prediction: 1, Uncertainty: 0.0017
+2025-06-06 16:12:34,528 - INFO - Robust position size: 49.2, Volatility: 0.00015953077989241924
+2025-06-06 16:12:34,530 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2025-06-06 16:12:34,531 - INFO - Pozycja 52631200948 wci¹¿ otwarta. SL: 0.64734, TP: 0.65219, Profit: 738.0
+2025-06-06 16:12:34,531 - INFO - Processing USDCHF
+2025-06-06 16:12:34,535 - INFO - Rate limit exceeded for USDCHF. Reusing last sentiment score: 0.5
+2025-06-06 16:12:34,539 - INFO - Rate limit exceeded for USDCHF. Reusing last sentiment score: 0.5
+2025-06-06 16:12:34,580 - WARNING - No orders in history from 2024-11-18 16:12:34.580834 to 2025-06-06 16:12:34.580834.
+2025-06-06 16:12:34,837 - INFO - Prediction for USDCHF: 1, Probabilities: [0.45815160870552063, 0.541848361492157], Uncertainty: 0.0016
+2025-06-06 16:12:34,875 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:12:35,154 - INFO - Akcja: 1 | BB%: 0.34 | Distrib: 0
+2025-06-06 16:12:35,154 - INFO - Robust prediction for USDCHF: 1, Model prediction: 1, Uncertainty: 0.0016
+2025-06-06 16:12:35,156 - INFO - Robust position size: 49.36, Volatility: 0.00012656054212282735
+2025-06-06 16:12:35,158 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2025-06-06 16:12:35,158 - INFO - Waiting 15 minutes before next iteration...
+2025-06-06 16:12:44,034 - INFO - Bot stopped by user.
+2025-06-06 16:12:44,035 - INFO - Shutdown after trading completion
