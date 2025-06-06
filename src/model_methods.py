@@ -62,7 +62,7 @@ def load_model(folder_path, filename, hidden_size=256, num_layers=3):
             input_size=checkpoint['input_size'],
             hidden_size=hidden_size,
             num_layers=num_layers,
-            output_size=2
+            output_size=20
         )
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()

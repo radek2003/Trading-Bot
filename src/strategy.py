@@ -2,9 +2,9 @@ import logging
 import pandas as pd
 import numpy as np
 import torch
-from ta.momentum import RSIIndicator
+from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.volatility import AverageTrueRange
-from ta.trend import VortexIndicator
+from ta.trend import VortexIndicator, ADXIndicator
 
 
 def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
@@ -36,7 +36,7 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
             logging.error("Brak informacji o oczekiwanych cechach!")
             return None
 
-        # 4. Oryginalna logika strategii z poprawkami
+        # 4. Logika strategii z dostosowanymi progami dla sell
         expected_features = scaler.feature_names
         missing = list(set(expected_features) - set(new_data_with_features.columns))
         if missing:
@@ -60,10 +60,12 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
         predictions = np.array(predictions)[:, 0, :]
 
         actions = [0, 1, -1]
-        scenarios = ['MACD', 'Candlestick', 'Moving_Averages', 'Vortex', 'Bollinger', 'PriceDistribution']
+        scenarios = ['MACD', 'Candlestick', 'Moving_Averages', 'Vortex', 'Bollinger', 'PriceDistribution', 'RSI',
+                     'Stochastic', 'ADX']
         action_scores = {action: [] for action in actions}
 
-        current_sentiment = new_data_with_features['sentiment'].iloc[-1] if 'sentiment' in new_data_with_features.columns else 0.0
+        current_sentiment = new_data_with_features['sentiment'].iloc[
+            -1] if 'sentiment' in new_data_with_features.columns else 0.0
         sentiment_factor = 1 + (current_sentiment * 0.3)
 
         for scenario in scenarios:
@@ -84,29 +86,63 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
                             for p in ['Bullish_Engulfing', 'Hammer']
                             if p in new_data_with_features.columns
                         ])
-                        adj = 1 if bull else -1
+                        bear = any([
+                            new_data_with_features[p].iloc[-1]
+                            for p in ['Bearish_Engulfing', 'Shooting_Star']
+                            if p in new_data_with_features.columns
+                        ])
+                        adj = 1 if bull else (-1 if bear else 0)
                     elif scenario == 'Moving_Averages':
-                        adj = new_data_with_features['Signal'].iloc[-1] if 'Signal' in new_data_with_features.columns else 0
+                        adj = new_data_with_features['Signal'].iloc[
+                            -1] if 'Signal' in new_data_with_features.columns else 0
                     elif scenario == 'Vortex':
-                        adj = 1 if new_data_with_features['Vortex_Diff'].iloc[-1] > 0 else -1 if 'Vortex_Diff' in new_data_with_features.columns else 0
+                        adj = 1 if new_data_with_features['Vortex_Diff'].iloc[
+                                       -1] > 0 else -1 if 'Vortex_Diff' in new_data_with_features.columns else 0
                     elif scenario == 'Bollinger':
                         adj = 1.5 if bb_pct > 0.8 else (-1.5 if bb_pct < 0.2 else 1.0)
                     elif scenario == 'PriceDistribution':
                         adj = distribution_signal * 1.2
+                    elif scenario == 'RSI':
+                        rsi = new_data_with_features['RSI'].iloc[-1] if 'RSI' in new_data_with_features.columns else 50
+                        adj = -1.5 if rsi > 70 else (1.5 if rsi < 30 else 0)
+                    elif scenario == 'Stochastic':
+                        stochastic = new_data_with_features['Stochastic'].iloc[-1]
+                        adj = -1.5 if stochastic > 80 else (1.5 if stochastic < 20 else 0)
+                    elif scenario == 'ADX':
+                        adx = new_data_with_features['ADX'].iloc[-1]
+                        plus_di = new_data_with_features['Plus_DI'].iloc[-1]
+                        minus_di = new_data_with_features['Minus_DI'].iloc[-1]
+                        if adx > 25:  # Silny trend
+                            adj = -1 if minus_di > plus_di else 1
+                        else:
+                            adj = 0
 
-                    scores = base_score * adj if (action == 1 and adj > 0) or (action == -1 and adj < 0) else -base_score
+                    # Podniesienie progu dla buy i obniżenie dla sell
+                    if action == 1:
+                        threshold = 0.7  # higher bar for buy
+                        scores = np.where(base_score > threshold,
+                                          base_score * adj,
+                                          -base_score)
+                    elif action == -1:
+                        threshold = -0.1  # lower bar for sell (zmiana z -0.3 na -0.1)
+                        scores = np.where(base_score < threshold,
+                                          base_score * adj,
+                                          -base_score)
+                    else:
+                        scores = -base_score
 
                 action_scores[action].append(scores)
 
         gamma_percentiles = [np.percentile(np.concatenate(v), gamma * 100) for v in action_scores.values()]
         best_action = actions[np.argmax(gamma_percentiles)]
 
-        logging.info(f"Akcja: {best_action} | BB%: {bb_pct:.2f} | Distrib: {distribution_signal}")
+        logging.info(f"Akcja: {best_action} | BB%: {bb_pct:.2f} | Distrib: {distribution_signal} | RSI: {rsi}")
         return best_action
 
     except Exception as e:
         logging.error(f"Błąd strategii: {str(e)}")
         return None
+
 
 def calculate_all_features(data):
     try:
@@ -114,12 +150,23 @@ def calculate_all_features(data):
         data = data.copy()
         data = data.drop(columns=['symbol'], errors='ignore')
 
-        # Dodaj nowe wskaźniki
+        # Dodaj istniejące wskaźniki
         data = calculate_robust_macd(data)
         data = calculate_candlestick_patterns(data)
         data = calculate_robust_moving_averages(data)
         data = calculate_vortex_indicator(data)
-        data = calculate_bollinger_bands(data)  # Nowy wskaźnik
+        data = calculate_bollinger_bands(data)
+        data = calculate_rsi(data)
+
+        # Dodaj nowe wskaźniki
+        stochastic = StochasticOscillator(high=data['high'], low=data['low'], close=data['close'], window=14,
+                                          smooth_window=3)
+        data['Stochastic'] = stochastic.stoch()
+
+        adx_indicator = ADXIndicator(high=data['high'], low=data['low'], close=data['close'], window=14)
+        data['ADX'] = adx_indicator.adx()
+        data['Plus_DI'] = adx_indicator.adx_pos()
+        data['Minus_DI'] = adx_indicator.adx_neg()
 
         if 'sentiment' not in data.columns:
             data['sentiment'] = 0.0
@@ -134,6 +181,18 @@ def calculate_all_features(data):
         return pd.DataFrame()
 
 
+def calculate_rsi(data, window=14):
+    """Oblicza RSI (Relative Strength Index)"""
+    try:
+        rsi = RSIIndicator(data['close'], window=window)
+        data['RSI'] = rsi.rsi()
+        return data
+    except Exception as e:
+        logging.error(f"Błąd obliczania RSI: {str(e)}")
+        data['RSI'] = 50  # Domyślna wartość neutralna
+        return data
+
+
 def calculate_price_distribution(data, current_price):
     """Analizuje rozkład cen z ostatnich 2 tygodni i 3 dni."""
     try:
@@ -145,29 +204,26 @@ def calculate_price_distribution(data, current_price):
         data['time'] = pd.to_datetime(data['time'])
         data.set_index('time', inplace=True, drop=False)
 
-        # Analiza 2-tygodniowa
         two_week_data = data.last('14D')['close']
         two_week_low = two_week_data.quantile(0.1) if len(two_week_data) >= 5 else np.nan
         two_week_high = two_week_data.quantile(0.9) if len(two_week_data) >= 5 else np.nan
 
-        # Analiza 3-dniowa
         three_day_data = data.last('3D')['close']
         three_day_low = three_day_data.quantile(0.1) if len(three_day_data) >= 3 else np.nan
         three_day_high = three_day_data.quantile(0.9) if len(three_day_data) >= 3 else np.nan
 
-        # Warunki z zabezpieczeniem przed NaN
         sell_condition = (
-            not np.isnan(two_week_high) and
-            not np.isnan(three_day_high) and
-            (current_price > two_week_high) and
-            (current_price > three_day_high)
+                not np.isnan(two_week_high) and
+                not np.isnan(three_day_high) and
+                (current_price > two_week_high) and
+                (current_price > three_day_high)
         )
 
         buy_condition = (
-            not np.isnan(two_week_low) and
-            not np.isnan(three_day_low) and
-            (current_price < two_week_low) and
-            (current_price < three_day_low)
+                not np.isnan(two_week_low) and
+                not np.isnan(three_day_low) and
+                (current_price < two_week_low) and
+                (current_price < three_day_low)
         )
 
         return -1 if sell_condition else 1 if buy_condition else 0
@@ -196,7 +252,6 @@ def calculate_bollinger_bands(data, window=20, num_std=2):
         return data
 
 
-
 def calculate_vortex_indicator(data):
     try:
         vortex = VortexIndicator(high=data['high'], low=data['low'], close=data['close'], window=14)
@@ -207,6 +262,7 @@ def calculate_vortex_indicator(data):
     except Exception as e:
         logging.exception("Problem z obliczaniem Vortex Indicator.")
         return data
+
 
 def calculate_robust_moving_averages(data):
     if data.empty:
@@ -232,6 +288,7 @@ def calculate_robust_moving_averages(data):
         logging.exception("Problem z obliczaniem robust średnich kroczących.")
         return pd.DataFrame()
 
+
 def calculate_robust_macd(df):
     if df.empty:
         logging.error("Brak danych do obliczeń MACD.")
@@ -249,6 +306,7 @@ def calculate_robust_macd(df):
         logging.exception("Problem z obliczaniem robust MACD.")
         return df
 
+
 def calculate_candlestick_patterns(data):
     """Dodaje cechy związane z formacjami świec z robust podejściem i nowymi wskaźnikami."""
     try:
@@ -258,13 +316,11 @@ def calculate_candlestick_patterns(data):
             logging.warning("Za mało danych do obliczenia formacji świecowych.")
             return data
 
-        # Podstawowe obliczenia
         body_size = np.abs(data['close'] - data['open'])
         range_size = data['high'] - data['low']
         trend_up = data['close'] > data['close'].shift(1)
         trend_down = data['close'] < data['close'].shift(1)
 
-        # Formacje 5-minutowe
         data['Bullish_Engulfing'] = ((data['open'] < data['close'].shift(1)) &
                                      (data['close'] > data['open'].shift(1)) &
                                      (data['open'] <= data['close'].shift(1)) &
@@ -330,7 +386,6 @@ def calculate_candlestick_patterns(data):
         data['Sprzedaj_5m'] = data['Czerwona_Swieca'] & data['Czerwona_Swieca'].shift(1)
         data['Target'] = (data['close'].shift(-1) > data['close']).astype(int)
 
-        # Formacje 15-minutowe (jeśli wystarczająco danych)
         if len(data) >= 15:
             data['Bullish_Engulfing_15m'] = ((data['open'] < data['close'].shift(3)) &
                                              (data['close'] > data['open'].shift(3)) &
@@ -359,7 +414,7 @@ def calculate_candlestick_patterns(data):
             data['Doji_15m'] = (body_size < range_size * 0.1)
 
             data['Shooting_Star_15m'] = ((data['high'].shift(3) > data['open'].shift(3) + (
-                        data['open'].shift(3) - data['low'].shift(3)) * 0.5) &
+                    data['open'].shift(3) - data['low'].shift(3)) * 0.5) &
                                          (data['low'].shift(3) > data['open'].shift(3)) &
                                          (data['close'].shift(3) < data['open'].shift(3)) &
                                          ((data['high'].shift(3) - data['close'].shift(3)) > body_size.shift(3) * 2) &
@@ -405,10 +460,6 @@ def calculate_candlestick_patterns(data):
                         'Three_White_Soldiers_15m', 'Three_Black_Crows_15m', 'Zielona_Swieca_15m',
                         'Czerwona_Swieca_15m', 'Kupuj_15m', 'Sprzedaj_15m', 'Target_15m']:
                 data[col] = 0
-
-        # Nowe wskaźniki
-        rsi = RSIIndicator(data['close'], window=14)
-        data['RSI'] = rsi.rsi() if len(data) >= 14 else 0
 
         atr = AverageTrueRange(data['high'], data['low'], data['close'], window=14)
         data['ATR'] = atr.average_true_range() if len(data) >= 14 else 0
