@@ -147,3 +147,187 @@ USDCHF -0.733129  0.716885 -0.636586 -0.460287  1.000000
 2025-06-06 16:12:35,158 - INFO - Waiting 15 minutes before next iteration...
 2025-06-06 16:12:44,034 - INFO - Bot stopped by user.
 2025-06-06 16:12:44,035 - INFO - Shutdown after trading completion
+2025-06-06 16:13:42,249 - INFO - Models folder ready at: c:\programowanie\Trading-Bot\models
+2025-06-06 16:13:42,260 - INFO - Rozpoczêto monitorowanie i modyfikacjê SL/TP dla EURUSD
+2025-06-06 16:13:42,260 - INFO - Uruchomiono w¹tek do dynamicznej modyfikacji SL/TP
+2025-06-06 16:13:42,270 - INFO - Uruchomiono w¹tek do dynamicznej modyfikacji SL/TP
+2025-06-06 16:13:42,271 - INFO - Rozpoczêto monitorowanie i modyfikacjê SL/TP dla USDJPY
+2025-06-06 16:13:42,282 - INFO - Rozpoczêto monitorowanie i modyfikacjê SL/TP dla GBPUSD
+2025-06-06 16:13:42,282 - INFO - Uruchomiono w¹tek do dynamicznej modyfikacji SL/TP
+2025-06-06 16:13:42,293 - INFO - Rozpoczêto monitorowanie i modyfikacjê SL/TP dla AUDUSD
+2025-06-06 16:13:42,293 - INFO - Uruchomiono w¹tek do dynamicznej modyfikacji SL/TP
+2025-06-06 16:13:42,306 - INFO - Rozpoczêto monitorowanie i modyfikacjê SL/TP dla USDCHF
+2025-06-06 16:13:42,306 - INFO - Uruchomiono w¹tek do dynamicznej modyfikacji SL/TP
+2025-06-06 16:13:42,307 - INFO - Starting new trading iteration
+2025-06-06 16:13:42,515 - INFO - Fetched news for EURUSD
+2025-06-06 16:13:43,595 - INFO - Computed new sentiment score for EURUSD: -0.3121739650766055
+2025-06-06 16:13:43,768 - INFO - Computed new sentiment score for EURUSD: -0.3121739650766055
+2025-06-06 16:13:43,771 - WARNING - No orders in history from 2024-11-18 16:13:43.769570 to 2025-06-06 16:13:43.769570.
+2025-06-06 16:13:44,291 - INFO - Fetched news for USDJPY
+2025-06-06 16:14:46,549 - INFO - User selected sentiment 'weak' (-0.5) for USDJPY
+2025-06-06 16:14:46,554 - INFO - Rate limit exceeded for USDJPY. Reusing last sentiment score: -0.5
+2025-06-06 16:14:46,556 - WARNING - No orders in history from 2024-11-18 16:14:46.556002 to 2025-06-06 16:14:46.556002.
+2025-06-06 16:14:47,074 - INFO - Fetched news for GBPUSD
+2025-06-06 16:14:47,143 - INFO - Computed new sentiment score for GBPUSD: -0.7419507503509521
+2025-06-06 16:14:47,208 - INFO - Computed new sentiment score for GBPUSD: -0.7419507503509521
+2025-06-06 16:14:47,210 - WARNING - No orders in history from 2024-11-18 16:14:47.210270 to 2025-06-06 16:14:47.210270.
+2025-06-06 16:14:47,706 - INFO - Fetched news for AUDUSD
+2025-06-06 16:14:50,377 - INFO - User selected sentiment 'average' (0.0) for AUDUSD
+2025-06-06 16:14:50,382 - INFO - Rate limit exceeded for AUDUSD. Reusing last sentiment score: 0.0
+2025-06-06 16:14:50,384 - WARNING - No orders in history from 2024-11-18 16:14:50.384232 to 2025-06-06 16:14:50.384232.
+2025-06-06 16:14:50,892 - INFO - Fetched news for USDCHF
+2025-06-06 16:14:53,224 - INFO - User selected sentiment 'average' (0.0) for USDCHF
+2025-06-06 16:14:53,229 - INFO - Rate limit exceeded for USDCHF. Reusing last sentiment score: 0.0
+2025-06-06 16:14:53,231 - WARNING - No orders in history from 2024-11-18 16:14:53.230544 to 2025-06-06 16:14:53.230544.
+2025-06-06 16:14:53,240 - INFO - Correlation matrix:
+          EURUSD    USDJPY    GBPUSD    AUDUSD    USDCHF
+EURUSD  1.000000 -0.577525  0.842421  0.643787 -0.734413
+USDJPY -0.577525  1.000000 -0.564340 -0.422953  0.719128
+GBPUSD  0.842421 -0.564340  1.000000  0.641248 -0.637479
+AUDUSD  0.643787 -0.422953  0.641248  1.000000 -0.453802
+USDCHF -0.734413  0.719128 -0.637479 -0.453802  1.000000
+2025-06-06 16:14:53,486 - INFO - Liczba cech: 44
+2025-06-06 16:14:56,798 - INFO - Epoka 1 | Loss: 0.6916 | Val Loss: 0.6906
+2025-06-06 16:14:56,806 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:56,982 - INFO - Epoka 2 | Loss: 0.6915 | Val Loss: 0.6904
+2025-06-06 16:14:56,990 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:57,140 - INFO - Epoka 3 | Loss: 0.6913 | Val Loss: 0.6902
+2025-06-06 16:14:57,148 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:57,303 - INFO - Epoka 4 | Loss: 0.6910 | Val Loss: 0.6900
+2025-06-06 16:14:57,313 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:57,468 - INFO - Epoka 5 | Loss: 0.6905 | Val Loss: 0.6897
+2025-06-06 16:14:57,477 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:57,629 - INFO - Epoka 6 | Loss: 0.6899 | Val Loss: 0.6894
+2025-06-06 16:14:57,638 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:57,792 - INFO - Epoka 7 | Loss: 0.6898 | Val Loss: 0.6891
+2025-06-06 16:14:57,800 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:57,952 - INFO - Epoka 8 | Loss: 0.6893 | Val Loss: 0.6888
+2025-06-06 16:14:57,960 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:58,117 - INFO - Epoka 9 | Loss: 0.6889 | Val Loss: 0.6885
+2025-06-06 16:14:58,125 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:58,278 - INFO - Epoka 10 | Loss: 0.6885 | Val Loss: 0.6882
+2025-06-06 16:14:58,286 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:58,438 - INFO - Epoka 11 | Loss: 0.6882 | Val Loss: 0.6879
+2025-06-06 16:14:58,447 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:58,599 - INFO - Epoka 12 | Loss: 0.6873 | Val Loss: 0.6876
+2025-06-06 16:14:58,607 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:58,759 - INFO - Epoka 13 | Loss: 0.6873 | Val Loss: 0.6873
+2025-06-06 16:14:58,767 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:58,920 - INFO - Epoka 14 | Loss: 0.6865 | Val Loss: 0.6869
+2025-06-06 16:14:58,928 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:59,083 - INFO - Epoka 15 | Loss: 0.6860 | Val Loss: 0.6867
+2025-06-06 16:14:59,091 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:59,245 - INFO - Epoka 16 | Loss: 0.6857 | Val Loss: 0.6864
+2025-06-06 16:14:59,253 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:59,408 - INFO - Epoka 17 | Loss: 0.6850 | Val Loss: 0.6862
+2025-06-06 16:14:59,416 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:59,569 - INFO - Epoka 18 | Loss: 0.6842 | Val Loss: 0.6861
+2025-06-06 16:14:59,577 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:59,731 - INFO - Epoka 19 | Loss: 0.6837 | Val Loss: 0.6859
+2025-06-06 16:14:59,739 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:14:59,894 - INFO - Epoka 20 | Loss: 0.6826 | Val Loss: 0.6858
+2025-06-06 16:14:59,902 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:15:00,060 - INFO - Epoka 21 | Loss: 0.6822 | Val Loss: 0.6858
+2025-06-06 16:15:00,218 - INFO - Epoka 22 | Loss: 0.6819 | Val Loss: 0.6859
+2025-06-06 16:15:00,375 - INFO - Epoka 23 | Loss: 0.6807 | Val Loss: 0.6859
+2025-06-06 16:15:00,530 - INFO - Epoka 24 | Loss: 0.6810 | Val Loss: 0.6861
+2025-06-06 16:15:00,685 - INFO - Epoka 25 | Loss: 0.6805 | Val Loss: 0.6863
+2025-06-06 16:15:00,845 - INFO - Epoka 26 | Loss: 0.6795 | Val Loss: 0.6864
+2025-06-06 16:15:01,001 - INFO - Epoka 27 | Loss: 0.6796 | Val Loss: 0.6866
+2025-06-06 16:15:01,162 - INFO - Epoka 28 | Loss: 0.6795 | Val Loss: 0.6867
+2025-06-06 16:15:01,321 - INFO - Epoka 29 | Loss: 0.6789 | Val Loss: 0.6866
+2025-06-06 16:15:01,480 - INFO - Epoka 30 | Loss: 0.6789 | Val Loss: 0.6869
+2025-06-06 16:15:01,637 - INFO - Epoka 31 | Loss: 0.6785 | Val Loss: 0.6872
+2025-06-06 16:15:01,794 - INFO - Epoka 32 | Loss: 0.6777 | Val Loss: 0.6867
+2025-06-06 16:15:01,950 - INFO - Epoka 33 | Loss: 0.6770 | Val Loss: 0.6863
+2025-06-06 16:15:02,106 - INFO - Epoka 34 | Loss: 0.6767 | Val Loss: 0.6861
+2025-06-06 16:15:02,263 - INFO - Epoka 35 | Loss: 0.6767 | Val Loss: 0.6858
+2025-06-06 16:15:02,273 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:15:02,425 - INFO - Epoka 36 | Loss: 0.6767 | Val Loss: 0.6855
+2025-06-06 16:15:02,433 - INFO - Model zapisany: c:\programowanie\Trading-Bot\models\best_model.pth
+2025-06-06 16:15:02,589 - INFO - Epoka 37 | Loss: 0.6748 | Val Loss: 0.6855
+2025-06-06 16:15:02,747 - INFO - Epoka 38 | Loss: 0.6751 | Val Loss: 0.6860
+2025-06-06 16:15:02,904 - INFO - Epoka 39 | Loss: 0.6737 | Val Loss: 0.6865
+2025-06-06 16:15:03,059 - INFO - Epoka 40 | Loss: 0.6733 | Val Loss: 0.6861
+2025-06-06 16:15:03,217 - INFO - Epoka 41 | Loss: 0.6735 | Val Loss: 0.6861
+2025-06-06 16:15:03,373 - INFO - Epoka 42 | Loss: 0.6727 | Val Loss: 0.6874
+2025-06-06 16:15:03,530 - INFO - Epoka 43 | Loss: 0.6718 | Val Loss: 0.6877
+2025-06-06 16:15:03,688 - INFO - Epoka 44 | Loss: 0.6716 | Val Loss: 0.6892
+2025-06-06 16:15:03,847 - INFO - Epoka 45 | Loss: 0.6704 | Val Loss: 0.6899
+2025-06-06 16:15:04,003 - INFO - Epoka 46 | Loss: 0.6694 | Val Loss: 0.6889
+2025-06-06 16:15:04,160 - INFO - Epoka 47 | Loss: 0.6698 | Val Loss: 0.6885
+2025-06-06 16:15:04,317 - INFO - Epoka 48 | Loss: 0.6692 | Val Loss: 0.6931
+2025-06-06 16:15:04,475 - INFO - Epoka 49 | Loss: 0.6683 | Val Loss: 0.6922
+2025-06-06 16:15:04,630 - INFO - Epoka 50 | Loss: 0.6676 | Val Loss: 0.6919
+2025-06-06 16:15:04,791 - INFO - Epoka 51 | Loss: 0.6667 | Val Loss: 0.6939
+2025-06-06 16:15:04,948 - INFO - Epoka 52 | Loss: 0.6656 | Val Loss: 0.6949
+2025-06-06 16:15:05,106 - INFO - Epoka 53 | Loss: 0.6664 | Val Loss: 0.6971
+2025-06-06 16:15:05,261 - INFO - Epoka 54 | Loss: 0.6646 | Val Loss: 0.6966
+2025-06-06 16:15:05,418 - INFO - Epoka 55 | Loss: 0.6642 | Val Loss: 0.6972
+2025-06-06 16:15:05,574 - INFO - Epoka 56 | Loss: 0.6635 | Val Loss: 0.7008
+2025-06-06 16:15:05,730 - INFO - Epoka 57 | Loss: 0.6624 | Val Loss: 0.7036
+2025-06-06 16:15:05,890 - INFO - Epoka 58 | Loss: 0.6610 | Val Loss: 0.7046
+2025-06-06 16:15:06,047 - INFO - Epoka 59 | Loss: 0.6627 | Val Loss: 0.7042
+2025-06-06 16:15:06,202 - INFO - Epoka 60 | Loss: 0.6621 | Val Loss: 0.6991
+2025-06-06 16:15:06,359 - INFO - Epoka 61 | Loss: 0.6590 | Val Loss: 0.7010
+2025-06-06 16:15:06,517 - INFO - Epoka 62 | Loss: 0.6569 | Val Loss: 0.7056
+2025-06-06 16:15:06,672 - INFO - Epoka 63 | Loss: 0.6600 | Val Loss: 0.7099
+2025-06-06 16:15:06,830 - INFO - Epoka 64 | Loss: 0.6598 | Val Loss: 0.7075
+2025-06-06 16:15:06,987 - INFO - Epoka 65 | Loss: 0.6580 | Val Loss: 0.7058
+2025-06-06 16:15:07,142 - INFO - Epoka 66 | Loss: 0.6572 | Val Loss: 0.7067
+2025-06-06 16:15:07,143 - INFO - Early stopping
+2025-06-06 16:15:07,159 - INFO - Dok³adnoœæ: 52.55%, F1-score: 0.47, Macierz pomy³ek:
+[[13 53]
+ [12 59]]
+2025-06-06 16:15:07,160 - INFO - Processing EURUSD
+2025-06-06 16:15:07,339 - INFO - Computed new sentiment score for EURUSD: -0.3121739650766055
+2025-06-06 16:15:07,502 - INFO - Computed new sentiment score for EURUSD: -0.3121739650766055
+2025-06-06 16:15:07,558 - WARNING - No orders in history from 2024-11-18 16:15:07.558938 to 2025-06-06 16:15:07.558938.
+2025-06-06 16:15:07,847 - INFO - Prediction for EURUSD: 1, Probabilities: [0.32092031836509705, 0.6790796518325806], Uncertainty: 0.0074
+2025-06-06 16:15:07,888 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:15:08,157 - INFO - Akcja: 1 | BB%: 0.82 | Distrib: 0 | RSI: 55.60245540165841
+2025-06-06 16:15:08,158 - INFO - Robust prediction for EURUSD: 1, Model prediction: 1, Uncertainty: 0.0074
+2025-06-06 16:15:08,158 - INFO - Robust position size: 49.480000000000004, Volatility: 0.00010357382641679126
+2025-06-06 16:15:08,161 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2025-06-06 16:15:08,161 - INFO - Processing USDJPY
+2025-06-06 16:15:08,165 - INFO - Rate limit exceeded for USDJPY. Reusing last sentiment score: -0.5
+2025-06-06 16:15:08,169 - INFO - Rate limit exceeded for USDJPY. Reusing last sentiment score: -0.5
+2025-06-06 16:15:08,213 - WARNING - No orders in history from 2024-11-18 16:15:08.213992 to 2025-06-06 16:15:08.213992.
+2025-06-06 16:15:08,467 - INFO - Prediction for USDJPY: 0, Probabilities: [0.5050615668296814, 0.49493837356567383], Uncertainty: 0.0278
+2025-06-06 16:15:08,507 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:15:08,774 - INFO - Akcja: 1 | BB%: 0.63 | Distrib: 0 | RSI: 63.004451992718955
+2025-06-06 16:15:08,774 - INFO - Robust prediction for USDJPY: 1, Model prediction: 0, Uncertainty: 0.0278
+2025-06-06 16:15:08,775 - INFO - Robust position size: 0.49, Volatility: 0.000164384073651165
+2025-06-06 16:15:15,800 - ERROR - B³¹d wykonania transakcji: 10004, (1, 'Success')
+2025-06-06 16:15:15,800 - INFO - Processing GBPUSD
+2025-06-06 16:15:15,873 - INFO - Computed new sentiment score for GBPUSD: -0.7419507503509521
+2025-06-06 16:15:15,940 - INFO - Computed new sentiment score for GBPUSD: -0.7419507503509521
+2025-06-06 16:15:15,992 - WARNING - No orders in history from 2024-11-18 16:15:15.992584 to 2025-06-06 16:15:15.992584.
+2025-06-06 16:15:16,521 - INFO - Prediction for GBPUSD: 1, Probabilities: [0.339590460062027, 0.6604095101356506], Uncertainty: 0.0069
+2025-06-06 16:15:16,561 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:15:16,837 - INFO - Akcja: 1 | BB%: 0.74 | Distrib: 0 | RSI: 52.58535014196712
+2025-06-06 16:15:16,837 - INFO - Robust prediction for GBPUSD: 1, Model prediction: 1, Uncertainty: 0.0069
+2025-06-06 16:15:16,839 - INFO - Robust position size: 49.5, Volatility: 9.883087269689545e-05
+2025-06-06 16:15:16,841 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2025-06-06 16:15:16,841 - INFO - Processing AUDUSD
+2025-06-06 16:15:16,845 - INFO - Rate limit exceeded for AUDUSD. Reusing last sentiment score: 0.0
+2025-06-06 16:15:16,849 - INFO - Rate limit exceeded for AUDUSD. Reusing last sentiment score: 0.0
+2025-06-06 16:15:16,895 - WARNING - No orders in history from 2024-11-18 16:15:16.895201 to 2025-06-06 16:15:16.895201.
+2025-06-06 16:15:17,156 - INFO - Prediction for AUDUSD: 0, Probabilities: [0.5010663866996765, 0.4989336431026459], Uncertainty: 0.0035
+2025-06-06 16:15:17,197 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:15:17,462 - INFO - Akcja: 1 | BB%: 0.62 | Distrib: 0 | RSI: 53.021348075726245
+2025-06-06 16:15:17,462 - INFO - Robust prediction for AUDUSD: 1, Model prediction: 0, Uncertainty: 0.0035
+2025-06-06 16:15:17,463 - INFO - Robust position size: 49.2, Volatility: 0.00015941704189768576
+2025-06-06 16:15:17,465 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2025-06-06 16:15:17,466 - INFO - Pozycja 52631200948 wci¹¿ otwarta. SL: 0.64734, TP: 0.65219, Profit: 1525.2
+2025-06-06 16:15:17,466 - INFO - Processing USDCHF
+2025-06-06 16:15:17,470 - INFO - Rate limit exceeded for USDCHF. Reusing last sentiment score: 0.0
+2025-06-06 16:15:17,473 - INFO - Rate limit exceeded for USDCHF. Reusing last sentiment score: 0.0
+2025-06-06 16:15:17,522 - WARNING - No orders in history from 2024-11-18 16:15:17.522782 to 2025-06-06 16:15:17.522782.
+2025-06-06 16:15:17,782 - INFO - Prediction for USDCHF: 0, Probabilities: [0.5281774997711182, 0.4718225300312042], Uncertainty: 0.0022
+2025-06-06 16:15:17,822 - WARNING - Brak danych czasowych lub za ma³o rekordów
+2025-06-06 16:15:18,086 - INFO - Akcja: 1 | BB%: 0.36 | Distrib: 0 | RSI: 50.652807594763225
+2025-06-06 16:15:18,086 - INFO - Robust prediction for USDCHF: 1, Model prediction: 0, Uncertainty: 0.0022
+2025-06-06 16:15:18,088 - INFO - Robust position size: 49.36, Volatility: 0.00012657023746215406
+2025-06-06 16:15:18,089 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
+2025-06-06 16:15:18,090 - INFO - Waiting 60 secunds before next iteration...
