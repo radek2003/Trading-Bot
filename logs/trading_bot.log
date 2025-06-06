@@ -331,3 +331,5 @@ USDCHF -0.734413  0.719128 -0.637479 -0.453802  1.000000
 2025-06-06 16:15:18,088 - INFO - Robust position size: 49.36, Volatility: 0.00012657023746215406
 2025-06-06 16:15:18,089 - ERROR - B³¹d wykonania transakcji: 10019, (1, 'Success')
 2025-06-06 16:15:18,090 - INFO - Waiting 60 secunds before next iteration...
+2025-06-06 16:16:04,399 - INFO - Bot stopped by user.
+2025-06-06 16:16:04,399 - INFO - Shutdown after trading completion
