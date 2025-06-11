@@ -10,12 +10,26 @@ from src.model_methods import train_model_with_history, mc_dropout_predict
 from src.trading import execute_trade, check_for_closed_positions, integrate_with_main
 from src.strategy import apply_strategy, calculate_all_features
 from src.risk_management import calculate_position_size
-
+from src.database import SQLiteHandler
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', 
                     filename='logs/trading_bot.log',       
                     filemode='a')                 
+# logger configuration
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Remove default handlers (if needed)
+for handler in logger.handlers[:]:
+    logger.removeHandler(handler)
+
+# SQLite handler
+sqlite_handler = SQLiteHandler('logs/trading_logs.db')
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+sqlite_handler.setFormatter(formatter)
+
+logger.addHandler(sqlite_handler)
 
 # Cache for news to avoid rate limiting
 news_cache = {}
@@ -70,6 +84,8 @@ def main():
         return
 
     symbols = ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCHF"]
+    
+    
     min_candles_for_patterns = 150
     seq_len = 30
 
