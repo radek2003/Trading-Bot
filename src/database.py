@@ -1,55 +1,60 @@
-import logging
-import sqlite3
 import os
+import logging
 from datetime import datetime
+from src.models import LogEntry, Setting  # Importuj model LogEntry z pliku models.py
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-class SQLiteHandler(logging.Handler):
-    def __init__(self, db_path='logs/trading_logs.db'):
+# Ścieżka do bazy danych
+DB_PATH = "logs/trading_logs.db"
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+# SQLAlchemy setup
+Base = declarative_base()
+engine = create_engine(f"sqlite:///{DB_PATH}", echo=False, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(bind=engine)
+
+
+# Inicjalizacja bazy danych
+def init_db():
+    Base.metadata.create_all(bind=engine)
+
+# Logger SQLAlchemy
+class SQLAlchemyHandler(logging.Handler):
+    def __init__(self):
         super().__init__()
-        self.db_path = db_path
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        self._create_table()
-
-    def _create_table(self):
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT,
-                    level TEXT,
-                    message TEXT
-                )
-            ''')
-            conn.commit()
 
     def emit(self, record):
         try:
-            msg = self.format(record)
-            log_time = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S')
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "INSERT INTO logs (timestamp, level, message) VALUES (?, ?, ?)",
-                    (log_time, record.levelname, record.getMessage())
-                )
-                conn.commit()
+            session = SessionLocal()
+            log_time = datetime.fromtimestamp(record.created)
+            log_entry = LogEntry(
+                timestamp=log_time,
+                level=record.levelname,
+                message=record.getMessage()
+            )
+            session.add(log_entry)
+            session.commit()
         except Exception:
             self.handleError(record)
+        finally:
+            session.close()
 
-def read_logs_from_db(path, limit=200):
-    if not os.path.exists(path):
-        return ["Brak bazy danych logów..."]
-    
+# Funkcja do odczytu logów
+def read_logs_from_db(limit=200):
     try:
-        conn = sqlite3.connect(path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT timestamp, level, message FROM logs ORDER BY id DESC LIMIT ?", (limit,))
-        rows = cursor.fetchall()
-        conn.close()
-        
-        # Formatowanie logów
-        formatted = [f"{row[0]} [{row[1]}] {row[2]}" for row in rows]
+        session = SessionLocal()
+        logs = session.query(LogEntry).order_by(LogEntry.id.desc()).limit(limit).all()
+        formatted = [f"{log.timestamp.strftime('%Y-%m-%d %H:%M:%S')} [{log.level}] {log.message}" for log in logs]
         return formatted
     except Exception as e:
         return [f"Błąd podczas odczytu logów: {e}"]
+    finally:
+        session.close()
+
+# Inicjalizacja i konfiguracja loggera (możesz wywołać to w main.py)
+def setup_logger():
+    init_db()
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(SQLAlchemyHandler())

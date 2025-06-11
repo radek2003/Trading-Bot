@@ -179,6 +179,36 @@ def test_trade_history(days_back=200):
     return deals
 
 
+def fetch_full_trade_history(days_back=200):
+    if not mt5.initialize():
+        raise RuntimeError("MT5 nie zostało zainicjalizowane.")
+
+    from_date = datetime.now() - timedelta(days=days_back)
+    to_date = datetime.now()
+
+    deals = mt5.history_deals_get(from_date, to_date)
+    if deals is None:
+        print("Brak transakcji w historii.")
+        return pd.DataFrame()
+
+    deals_df = pd.DataFrame([{
+        'time': deal.time,
+        'symbol': deal.symbol,
+        'ticket': deal.ticket,
+        'type': mt5.ORDER_TYPE_BUY if deal.type == 0 else "sell",
+        'volume': deal.volume,
+        'price': deal.price,
+        'profit': deal.profit,
+        'commission': deal.commission,
+        'swap': deal.swap,
+        'position_id': deal.position_id
+    } for deal in deals])
+
+    # Konwersja czasu
+    deals_df['time'] = pd.to_datetime(deals_df['time'], unit='s')
+    
+    return deals_df
+
 def fetch_historical_data(symbol, bars_m5=2000, bars_m15=2000):
     """    
     Adds :
