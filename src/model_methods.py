@@ -14,12 +14,38 @@ MODEL_FOLDER = "models"
 MODEL_FILENAME = "best_model.pth"
 
 
+# class LSTMModel(nn.Module):
+#     def __init__(self, input_size, hidden_size, num_layers, output_size):
+#         super().__init__()
+#         self.input_size = input_size
+#         self.hidden_size = hidden_size
+#         self.num_layers = num_layers
+#         self.lstm = nn.LSTM(
+#             input_size=input_size,
+#             hidden_size=hidden_size,
+#             num_layers=num_layers,
+#             batch_first=True,
+#             dropout=0.5 if num_layers > 1 else 0
+#         )
+#         self.fc = nn.Linear(hidden_size, output_size)
+#         self.relu = nn.ReLU()
+
+#     def forward(self, x):
+#         if x.dim() == 2:
+#             x = x.unsqueeze(0)
+#         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+#         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+#         out, _ = self.lstm(x, (h0, c0))
+#         out = self.relu(out[:, -1, :])
+#         out = self.fc(out)
+#         return out
 class LSTMModel(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+
         self.lstm = nn.LSTM(
             input_size=input_size,
             hidden_size=hidden_size,
@@ -27,7 +53,12 @@ class LSTMModel(nn.Module):
             batch_first=True,
             dropout=0.5 if num_layers > 1 else 0
         )
-        self.fc = nn.Linear(hidden_size, output_size)
+
+        # Trzy warstwy FC
+        self.fc1 = nn.Linear(hidden_size, hidden_size // 2)
+        self.fc2 = nn.Linear(hidden_size // 2, hidden_size // 4)
+        self.fc3 = nn.Linear(hidden_size // 4, output_size)
+
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -36,10 +67,12 @@ class LSTMModel(nn.Module):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         out, _ = self.lstm(x, (h0, c0))
-        out = self.relu(out[:, -1, :])
-        out = self.fc(out)
-        return out
 
+        out = out[:, -1, :]  # Ostatni krok czasowy
+        out = self.relu(self.fc1(out))
+        out = self.relu(self.fc2(out))
+        out = self.fc3(out)
+        return out
 
 def save_model(model, scaler, folder_path, filename, feature_names):
     try:
@@ -121,15 +154,16 @@ def train_model_with_history(data, folder_path, model_filename):
         feature_names = data.drop('Target', axis=1).columns.tolist()
         scaler.feature_names = feature_names
 
-        seq_len = 30
+        seq_len = 96
         X_seq, y_seq = [], []
-        for i in range(len(X_scaled) - seq_len + 1):
+        for i in range(len(X_scaled) - seq_len):
             X_seq.append(X_scaled[i:i + seq_len])
-            y_seq.append(y[i + seq_len - 1])
+            #y_seq.append(y[i + seq_len - 1])
+            y_seq.append(y[i + seq_len])
 
         X_seq = np.array(X_seq)
         y_seq = np.array(y_seq)
-
+        print(f"X_seq shape: {X_seq.shape}, y_seq shape: {y_seq.shape}")
         X_train, X_temp, y_train, y_temp = train_test_split(X_seq, y_seq, test_size=0.3, random_state=42)
         X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
 
@@ -147,39 +181,39 @@ def train_model_with_history(data, folder_path, model_filename):
             input_size=num_features,
             hidden_size=256,
             num_layers=3,
-            output_size=2
+            output_size=1
         )
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model.to(device)
 
-        class_counts = np.bincount(y_train)
-        class_weights = torch.tensor([
-            1.5 / class_counts[0],
-            2.0 / class_counts[1]
-        ], dtype=torch.float32).to(device)
+        # class_counts = np.bincount(y_train)
+        # class_weights = torch.tensor([
+        #     1.5 / class_counts[0],
+        #     2.0 / class_counts[1]
+        # ], dtype=torch.float32).to(device)
 
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
-        optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.001)
-        scheduler = optim.lr_scheduler.CyclicLR(
+        #criterion = nn.CrossEntropyLoss(weight=class_weights)
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(model.parameters(), lr=0.004, weight_decay=0.001)
+        scheduler = optim.lr_scheduler.scheduler = optim.lr_scheduler.StepLR(
             optimizer,
-            base_lr=0.00001,
-            max_lr=0.0001,
-            step_size_up=200,
-            cycle_momentum=False
+            step_size=10,  # co 10 epok
+            gamma=0.1      # zmniejsz LR o 10%
         )
 
         best_val_loss = float('inf')
         early_stop_counter = 0
-        patience = 30
-
+        patience = 5
         for epoch in range(100):
             model.train()
             total_loss = 0.0
             for batch_X, batch_y in train_loader:
-                batch_X, batch_y = batch_X.to(device), batch_y.to(device)
+                batch_X, batch_y = batch_X.to(device), batch_y.to(device).float()
                 optimizer.zero_grad()
-                outputs = model(batch_X)
+                outputs = model(batch_X).flatten().float()
+                # print(outputs)
+                # print(batch_y)
                 loss = criterion(outputs, batch_y)
                 loss.backward()
                 optimizer.step()

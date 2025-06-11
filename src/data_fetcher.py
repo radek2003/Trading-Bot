@@ -158,8 +158,15 @@ def test_trade_history(days_back=200):
 
     history = mt5.history_orders_get(from_date, to_date)
     if history is None or len(history) == 0:
-        logging.warning(f"No orders in history from {from_date} to {to_date}.")
-        return pd.DataFrame()
+        #logging.warning(f"No orders in history from {from_date} to {to_date}.")
+        deals = pd.DataFrame([{
+        'time': "No trades",
+        'type': "No trades",
+        'profit': "No trades",
+        'volume': "No trades",
+        }])
+
+        return pd.DataFrame()#deals
 
     deals = pd.DataFrame([{
         'time': order.time_setup,
@@ -172,7 +179,13 @@ def test_trade_history(days_back=200):
     return deals
 
 
-def fetch_historical_data(symbol, bars_m5=200, bars_m15=200):
+def fetch_historical_data(symbol, bars_m5=2000, bars_m15=2000):
+    """    
+    Adds :
+    Sentiment - Sentiment score based on financial news articles
+    ATR - ATR shows investors the average range prices swing for an investment over a specified period
+    
+    """
     try:
         rates_m5 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, bars_m5)
         if rates_m5 is None or len(rates_m5) == 0:
@@ -184,10 +197,11 @@ def fetch_historical_data(symbol, bars_m5=200, bars_m15=200):
             df_m5['close_smooth'] = df_m5['close'].rolling(window=3, min_periods=1).mean()
             atr_m5 = AverageTrueRange(high=df_m5['high'], low=df_m5['low'], close=df_m5['close'], window=14)
             df_m5['atr'] = atr_m5.average_true_range()
-            price_changes_m5 = df_m5['close'].diff().abs()
-            threshold_m5 = 3 * df_m5['atr']
-            df_m5 = df_m5[price_changes_m5 <= threshold_m5]
-            #df_m5 = add_sentiment_features(df_m5, symbol)
+            # fileting out the noise
+            #price_changes_m5 = df_m5['close'].diff().abs()
+            #threshold_m5 = 3 * df_m5['atr']
+            #df_m5 = df_m5[price_changes_m5 <= threshold_m5]
+            df_m5 = add_sentiment_features(df_m5, symbol)
 
         rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, bars_m15)
         if rates_m15 is None or len(rates_m15) == 0:
@@ -197,12 +211,13 @@ def fetch_historical_data(symbol, bars_m5=200, bars_m15=200):
             df_m15 = pd.DataFrame(rates_m15)
             df_m15['time'] = pd.to_datetime(df_m15['time'], unit='s')
             df_m15['close_smooth'] = df_m15['close'].rolling(window=3, min_periods=1).mean()
-            atr_m15 = AverageTrueRange(high=df_m15['high'], low=df_m15['low'], close=df_m15['close'], window=14)
-            df_m15['atr'] = atr_m15.average_true_range()
-            price_changes_m15 = df_m15['close'].diff().abs()
-            threshold_m15 = 3 * df_m15['atr']
-            df_m15 = df_m15[price_changes_m15 <= threshold_m15]
-            #df_m15 = add_sentiment_features(df_m15, symbol)
+            # fileting out the noise
+            #atr_m15 = AverageTrueRange(high=df_m15['high'], low=df_m15['low'], close=df_m15['close'], window=14)
+            #df_m15['atr'] = atr_m15.average_true_range()
+            #price_changes_m15 = df_m15['close'].diff().abs()
+            #threshold_m15 = 3 * df_m15['atr']
+            #df_m15 = df_m15[price_changes_m15 <= threshold_m15]
+            df_m15 = add_sentiment_features(df_m15, symbol)
 
         return df_m5, df_m15
     except Exception as e:
@@ -210,6 +225,8 @@ def fetch_historical_data(symbol, bars_m5=200, bars_m15=200):
         return pd.DataFrame(), pd.DataFrame()
 
 if __name__ == "__main__":
-
+    pass
     #(test_trade_history(days_back=200))
-    print(fetch_historical_data('EURUSD', bars_m5=200, bars_m15=200))
+    #mt5.initialize()
+    #test_trade_history(days_back=200)
+    # print(fetch_historical_data('EURUSD', bars_m5=250, bars_m15=250))

@@ -10,7 +10,6 @@ from ta.trend import VortexIndicator, ADXIndicator
 def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
     try:
         new_data_with_features = calculate_all_features(new_data)
-
         if new_data_with_features.empty:
             logging.error("Brak danych do analizy.")
             return None
@@ -73,9 +72,10 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
                 if action == 0:
                     scores = np.zeros(num_samples)
                 else:
-                    prob_trade = predictions[:, 1]
-                    prob_no_trade = predictions[:, 0]
-                    base_score = (prob_trade - prob_no_trade) * sentiment_factor
+                    prob_trade = predictions[:, 0]
+                    #prob_no_trade = predictions[:, 0]
+                    #kalsyfikacja czy kupić razy sentyment
+                    base_score = (prob_trade) * sentiment_factor
 
                     # Upewnij się, że wszystkie wartości są SKALARAMI
                     if scenario == 'MACD':
@@ -136,7 +136,8 @@ def apply_strategy(model, scaler, new_data, gamma=0.1, num_samples=5000):
         gamma_percentiles = [np.percentile(np.concatenate(v), gamma * 100) for v in action_scores.values()]
         best_action = actions[np.argmax(gamma_percentiles)]
 
-        logging.info(f"Akcja: {best_action} | BB%: {bb_pct:.2f} | Distrib: {distribution_signal} | RSI: {rsi}")
+        best_action_print = "Kupuj" if best_action == 1 else "Sprzedaj" if best_action == -1 else "Brak Akcji"
+        logging.info(f"Akcja: {best_action_print} | BB%: {bb_pct:.2f} | Distrib: {distribution_signal} | RSI: {rsi}")
         return best_action
 
     except Exception as e:
@@ -212,13 +213,14 @@ def calculate_price_distribution(data, current_price):
         three_day_low = three_day_data.quantile(0.1) if len(three_day_data) >= 3 else np.nan
         three_day_high = three_day_data.quantile(0.9) if len(three_day_data) >= 3 else np.nan
 
+        # sell if price is above both highs
         sell_condition = (
                 not np.isnan(two_week_high) and
                 not np.isnan(three_day_high) and
                 (current_price > two_week_high) and
                 (current_price > three_day_high)
         )
-
+        # buy if price is above both highs
         buy_condition = (
                 not np.isnan(two_week_low) and
                 not np.isnan(three_day_low) and
@@ -281,6 +283,7 @@ def calculate_robust_moving_averages(data):
         data['Signal'] = np.where(data['MA20'] > data['MA60'], 1, -1)
         data['Buy_Signal'] = (data['Signal'].shift(1) == -1) & (data['Signal'] == 1)
         data['Sell_Signal'] = (data['Signal'].shift(1) == 1) & (data['Signal'] == -1)
+        #Traget to czy cena wzrośnie w następnym kroku
         data['Target'] = (data['close'].shift(-1) > data['close']).astype(int)
         return data.drop(['tick_volume'], axis=1, errors='ignore')
 
@@ -384,6 +387,7 @@ def calculate_candlestick_patterns(data):
         data['Czerwona_Swieca'] = data['close'] < data['open']
         data['Kupuj_5m'] = data['Zielona_Swieca'] & data['Zielona_Swieca'].shift(1)
         data['Sprzedaj_5m'] = data['Czerwona_Swieca'] & data['Czerwona_Swieca'].shift(1)
+        #Traget to czy cena wzrośnie w następnym kroku
         data['Target'] = (data['close'].shift(-1) > data['close']).astype(int)
 
         if len(data) >= 15:

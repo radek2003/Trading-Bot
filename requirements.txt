@@ -6,3 +6,4 @@ os
 torch
 numpy
 ta
+streamlit_autorefresh
