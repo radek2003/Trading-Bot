@@ -8,7 +8,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import time
 import sys
-
+from src.settings_manager import get_sentiment, set_sentiment
 NEWS_API_KEY = "07f95978137e4cd0ba2236bff4e304ad"
 
 tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
@@ -40,13 +40,14 @@ def get_user_sentiment(symbol):
     )
     while True:
         try:
-            user_input = input(prompt).strip().lower()
-            if user_input in SENTIMENT_MAPPING:
-                sentiment_value = SENTIMENT_MAPPING[user_input]
-                logging.info(f"User selected sentiment '{user_input}' ({sentiment_value}) for {symbol}")
-                return sentiment_value
-            else:
-                print(f"Invalid input. Please choose one of: weak, average, high")
+            # user_input = input(prompt).strip().lower()
+            # if user_input in SENTIMENT_MAPPING:
+            sentiment_value = get_sentiment(symbol) #SENTIMENT_MAPPING[user_input]
+            #print(sentiment_value)
+            logging.info(f"User selected sentiment '{sentiment_value}' ({sentiment_value}) for {symbol}")
+            return sentiment_value
+            # else:
+            #     print(f"Invalid input. Please choose one of: weak, average, high")
         except KeyboardInterrupt:
             logging.warning(f"User interrupted input for {symbol}. Defaulting to 0.0")
             return 0.0

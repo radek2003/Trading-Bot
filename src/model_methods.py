@@ -90,7 +90,7 @@ def mc_dropout_predict(model, X, num_samples=500, device='cpu'):
     return mean_pred, std_pred
 
 
-def train_model_with_history(data, folder_path, model_filename):
+def train_model_with_history(data, folder_path, model_filename, seq_len = 30):
     try:
         if 'sentiment' not in data.columns:
             data['sentiment'] = 0.0
@@ -121,7 +121,7 @@ def train_model_with_history(data, folder_path, model_filename):
         feature_names = data.drop('Target', axis=1).columns.tolist()
         scaler.feature_names = feature_names
 
-        seq_len = 30
+        #seq_len = 30
         X_seq, y_seq = [], []
         for i in range(len(X_scaled) - seq_len + 1):
             X_seq.append(X_scaled[i:i + seq_len])

@@ -11,7 +11,7 @@ from src.trading import execute_trade, check_for_closed_positions, integrate_wit
 from src.strategy import apply_strategy, calculate_all_features
 from src.risk_management import calculate_position_size
 from src.database import setup_logger
-from src.settings_manager import get_setting_int
+from src.settings_manager import get_setting
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', 
@@ -52,7 +52,7 @@ def calculate_correlations(data_dict):
         close_df = pd.DataFrame(close_prices)
         returns = close_df.pct_change(fill_method=None).dropna()
         corr_matrix = returns.corr()
-        logging.info(f"Correlation matrix:\n{corr_matrix}")
+        #logging.info(f"Correlation matrix:\n{corr_matrix}")
         return corr_matrix
     except Exception as e:
         logging.error(f"Error calculating correlations: {str(e)}")
@@ -89,9 +89,10 @@ def main():
     
     # min_candles_for_patterns = 150
     # seq_len = 30
-    min_candles_for_patterns = get_setting_int("min_candles_for_patterns", 150)
-    seq_len = get_setting_int("seq_len", 30)
-
+    min_candles_for_patterns = int(get_setting("min_candles_for_patterns", 150))
+    seq_len = int(get_setting("seq_len", 30))
+    # print("_______________________________")
+    # print(f"Using settings: min_candles_for_patterns={min_candles_for_patterns}, seq_len={seq_len}")
     # Set script_dir robustly
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))  # Fixed syntax: proper parentheses
@@ -170,7 +171,7 @@ def main():
             combined_data = pd.concat(combined_data, ignore_index=True)
 
             model_filename = 'best_model.pth'
-            model, scaler, training_columns = train_model_with_history(combined_data, folder_path, model_filename)
+            model, scaler, training_columns = train_model_with_history(combined_data, folder_path, model_filename, seq_len=seq_len)
 
             if model is None or scaler is None or training_columns is None:
                 logging.error("Model, scaler, or training columns not loaded.")
