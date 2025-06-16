@@ -196,7 +196,7 @@ def fetch_full_trade_history(days_back=200):
         'time': deal.time,
         'symbol': deal.symbol,
         'ticket': deal.ticket,
-        'type': mt5.ORDER_TYPE_BUY if deal.type == 0 else "sell",
+        'type': mt5.ORDER_TYPE_BUY if deal.type == 0 else -1,
         'volume': deal.volume,
         'price': deal.price,
         'profit': deal.profit,

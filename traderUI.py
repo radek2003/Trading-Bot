@@ -61,16 +61,19 @@ if "mt5_initialized" not in st.session_state:
         st.session_state["mt5_initialized"] = True# st.dataframe(test_trade_history(days_back=200))
         
 deals = fetch_full_trade_history(days_back=14)
-#st.dataframe(fetch_full_trade_history(days_back=200))
+#st.dataframe(deals)
 if deals.empty:
     st.warning("Brak danych o transakcjach.")
 else:
     st.subheader("📊 Wykres zysków w czasie")
-
+    deals['time'] = deals['time'].dt.date
+    deals = deals.groupby(['time'])['profit'].agg('sum').reset_index()
     deals['color'] = deals['profit'].apply(lambda x: 'Zysk' if x >= 0 else 'Strata')
-
+    
+    #st.dataframe(deals)
+    #deals['profit']
     chart = alt.Chart(deals).mark_bar(size=20).encode(
-        x=alt.X('time:T', title='Czas'),
+        x=alt.X('time', title='Czas'),
         y=alt.Y('profit:Q', title='Zysk / Strata'),
         color=alt.Color('color:N', scale=alt.Scale(domain=['Zysk', 'Strata'], range=['green', 'red']), legend=None),
         tooltip=['time', 'profit']
