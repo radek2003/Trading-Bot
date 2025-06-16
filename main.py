@@ -80,7 +80,11 @@ def add_correlation_features(data, corr_matrix, symbol):
 
 
 def main():
-    if not mt5.initialize():
+    login = 93697004
+    password = 'W-HxG7Ee'# o$N281'&L~3a
+    server = 'MetaQuotes-Demo'
+
+    if not mt5.initialize(server=server,login=login,password=password):
         logging.error(f"MT5 initialization failed, error code: {mt5.last_error()}")
         return
 
@@ -91,6 +95,8 @@ def main():
     # seq_len = 30
     min_candles_for_patterns = int(get_setting("min_candles_for_patterns", 150))
     seq_len = int(get_setting("seq_len", 30))
+    
+    trading_reload_min = int(get_setting("trading_reload", 30))
     # print("_______________________________")
     # print(f"Using settings: min_candles_for_patterns={min_candles_for_patterns}, seq_len={seq_len}")
     # Set script_dir robustly
@@ -300,8 +306,8 @@ def main():
                     logging.error(f"Error during prediction or trade execution for {symbol}: {str(e)}")
                     continue
 
-            logging.info("Waiting 60 secunds before next iteration...")
-            time.sleep(60)
+            logging.info(f"Waiting {trading_reload_min} minutes before next iteration...")
+            time.sleep(trading_reload_min * 60)
 
     except KeyboardInterrupt:
         logging.info("Bot stopped by user.")

@@ -206,7 +206,10 @@ def fetch_full_trade_history(days_back=200):
     } for deal in deals])
 
     # Konwersja czasu
-    deals_df['time'] = pd.to_datetime(deals_df['time'], unit='s')
+    try:
+        deals_df['time'] = pd.to_datetime(deals_df['time'], unit='s')
+    except:
+        pass 
     
     return deals_df
 

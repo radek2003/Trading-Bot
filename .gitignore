@@ -2,3 +2,4 @@ trading_bot.log
 venv
 .idea/
 logs/
+.env
