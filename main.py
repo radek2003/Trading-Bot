@@ -80,8 +80,8 @@ def add_correlation_features(data, corr_matrix, symbol):
 
 
 def main():
-    login = 93697004
-    password = 'W-HxG7Ee'# o$N281'&L~3a
+    login = 5037254495
+    password = '!g4hLaFu'# o$N281'&L~3a
     server = 'MetaQuotes-Demo'
 
     if not mt5.initialize(server=server,login=login,password=password):

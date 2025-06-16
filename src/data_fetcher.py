@@ -133,6 +133,7 @@ def add_sentiment_features(df, symbol):
         # Store the new sentiment score in the cache
         sentiment_cache[symbol] = avg_sentiment
         logging.info(f"Computed new sentiment score for {symbol}: {avg_sentiment}")
+        set_sentiment(symbol, avg_sentiment)
         df["sentiment"] = avg_sentiment
         return df
     except Exception as e:
@@ -184,10 +185,20 @@ def fetch_full_trade_history(days_back=200):
     if not mt5.initialize():
         raise RuntimeError("MT5 nie zostało zainicjalizowane.")
 
-    from_date = datetime.now() - timedelta(days=days_back)
-    to_date = datetime.now()
+    # from_date = datetime.now() - timedelta(days=days_back)
+    # to_date = datetime.now()
 
+    # server_time = mt5.time()
+    # to_date = datetime.fromtimestamp(server_time)
+    tick = mt5.symbol_info_tick("EURUSD")  # możesz użyć dowolnego dostępnego symbolu
+    server_time = datetime.fromtimestamp(tick.time)
+
+    # Zakres dat
+    from_date = server_time - timedelta(days=days_back)
+    to_date = server_time
+    
     deals = mt5.history_deals_get(from_date, to_date)
+    #print(deals)
     if deals is None:
         print("Brak transakcji w historii.")
         return pd.DataFrame()
@@ -205,11 +216,10 @@ def fetch_full_trade_history(days_back=200):
         'position_id': deal.position_id
     } for deal in deals])
 
+    #print(deals_df)
     # Konwersja czasu
-    try:
-        deals_df['time'] = pd.to_datetime(deals_df['time'], unit='s')
-    except:
-        pass 
+    deals_df['time'] = pd.to_datetime(deals_df['time'], unit='s')
+    
     
     return deals_df
 

@@ -7,6 +7,8 @@ import pandas as pd
 from ta.volatility import AverageTrueRange
 import threading
 import warnings
+from src.settings_manager import get_setting
+
 warnings.filterwarnings("ignore", category=FutureWarning)  
 
 
@@ -33,8 +35,13 @@ def execute_trade(model_prediction, symbol, volume, historical_data=None, confid
         spread = (tick.ask - tick.bid) / punkt
 
         # Dynamiczny SL oparty na ATR
-        min_pips = 150
-        max_pips = 200
+        #min_pips = 150
+        #max_pips = 200
+        #trading_reload_min = int(get_setting("trading_reload", 30))
+        min_pips = int(get_setting("min_pips", 150))
+        max_pips = int(get_setting("max_pips", 200))
+
+        
         atr_window = 14
         atr_multiplier = 2.5
 

@@ -8,9 +8,10 @@ from src.data_fetcher import test_trade_history, fetch_full_trade_history
 from src.database import read_logs_from_db
 from src.settings_manager import get_setting, set_setting, set_sentiment, get_sentiment, SENTIMENT_MAPPING
 #from loginUI import login_form  # niepotrzebne, bo mamy formę poniżej
+from dotenv import load_dotenv
 
 DB_PATH = "logs/trading_logs.db"
-
+load_dotenv()
 
 # Sidebar z logowaniem — tak jak w poprzednim przykładzie
 st.sidebar.header("🔐 Logowanie do MetaTrader 5")
@@ -18,8 +19,8 @@ st.sidebar.header("🔐 Logowanie do MetaTrader 5")
 if not st.session_state.get("mt5_initialized", False):
     # Formularz logowania
     with st.sidebar.form("login_form"):
-        login = st.text_input("Login", value=st.session_state.get("login", ""), key="input_login")
-        password = st.text_input("Hasło", type="password", value=st.session_state.get("password", ""), key="input_password")
+        login = st.text_input("Login", value=st.session_state.get("login", os.getenv("MT5_LOGIN")), key="input_login")
+        password = st.text_input("Hasło", type="password", value=st.session_state.get("password", os.getenv("MT5_PASSWORD")), key="input_password")
         server = st.text_input("Serwer", value=st.session_state.get("server", "MetaQuotes-Demo"), key="input_server")
         submitted = st.form_submit_button("Połącz z MT5")
 
@@ -27,7 +28,7 @@ if not st.session_state.get("mt5_initialized", False):
         st.session_state["login"] = login
         st.session_state["password"] = password
         st.session_state["server"] = server
-
+        #print(login, password, server)
         if not mt5.initialize():
             st.error(f"❌ Błąd inicjalizacji MT5: {mt5.last_error()}")
             st.session_state["mt5_initialized"] = False
@@ -57,7 +58,16 @@ else:
 if st.session_state.get("mt5_initialized", False):
     # Wszystkie elementy, które chcesz pokazać tylko po zalogowaniu
     st.title("📈 MT5 Trading Bot Logs")
-
+    trading_reload_min = int(get_setting("trading_reload", 30))
+    trading_reload_min = st.number_input(
+        "Czas odświeżania danych (w minutach)", 
+        min_value=1, max_value=1440, value=trading_reload_min, step=1, key="trading_reload_min"
+    )
+    
+    # Zapisz ustawienie przy zmianie
+    if st.button("💾 Zapisz czas odświeżania"):
+        set_setting("trading_reload", str(trading_reload_min))
+        st.success("Zapisano czas odświeżania!")
     st_autorefresh(interval=3000, key="log_refresh")
 
     symbols = ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCHF"]
@@ -76,14 +86,29 @@ if st.session_state.get("mt5_initialized", False):
             )
             set_sentiment(symbol, SENTIMENT_MAPPING[choice])
 
+    st.subheader("📌 Aktualne wartości sentymentów")
+
+    for symbol in symbols:
+        user_sentiment = get_sentiment(symbol)  # zakładam, że taka funkcja istnieje
+        st.markdown(f"**{symbol}**: {user_sentiment}")
+    
+    
     st.sidebar.header("⚙️ Ustawienia LSTM")
     min_candles = st.sidebar.number_input("Minimalna liczba świec", min_value=10, value=int(get_setting("min_candles_for_patterns", "150")))
     seq_length = st.sidebar.number_input("Długość sekwencji", min_value=5, value=int(get_setting("seq_len", "30")))
 
     st.sidebar.header("🚫 Ustawienia Ryzyka")
 
-    MAX_RISK_PER_TRADE = st.sidebar.number_input("Maksymalny procent alokacji",step = 0.0001, format="%.6f",
-                                                min_value=0.000001, value=float(get_setting("MAX_RISK_PER_TRADE", "0.0001")))
+    MAX_RISK_PER_TRADE = st.sidebar.number_input(
+        "Maksymalny procent alokacji", step=0.0001, format="%.6f",
+        min_value=0.000001, value=float(get_setting("MAX_RISK_PER_TRADE", "0.0001"))
+    )
+
+    min_pips = int(get_setting("min_pips", 150))
+    max_pips = int(get_setting("max_pips", 200))
+
+    min_pips = st.sidebar.number_input("Minimalna liczba pipsów (SL)", min_value=1, max_value=1000, value=min_pips)
+    max_pips = st.sidebar.number_input("Maksymalna liczba pipsów (SL)", min_value=min_pips, max_value=2000, value=max_pips)
 
     if st.sidebar.button("💾 Zapisz ustawienia"):
         st.text("Ustawiania modelu LSTM")
@@ -93,30 +118,39 @@ if st.session_state.get("mt5_initialized", False):
 
         st.text("Ustawiania ryzyka")
         set_setting("MAX_RISK_PER_TRADE", str(MAX_RISK_PER_TRADE))
+        set_setting("min_pips", str(min_pips))
+        set_setting("max_pips", str(max_pips))
+        set_setting("MAX_RISK_PER_TRADE", str(MAX_RISK_PER_TRADE))
+        st.sidebar.success("Zapisano ustawienia!")
 
 
-    deals = fetch_full_trade_history(days_back=14)
-    if deals.empty:
+
+    try:
+        deals = fetch_full_trade_history(days_back=14)
+        deals = deals.iloc[1:]
+        
+        if deals.empty:
+            st.warning("Brak danych o transakcjach.")
+        else:
+            st.subheader("📊 Wykres zysków w czasie")
+            deals['time'] = deals['time'].dt.date
+            deals = deals.groupby(['time'])['profit'].agg('sum').reset_index()
+            deals['color'] = deals['profit'].apply(lambda x: 'Zysk' if x >= 0 else 'Strata')
+
+            chart = alt.Chart(deals).mark_bar(size=20).encode(
+                x=alt.X('time', title='Czas'),
+                y=alt.Y('profit:Q', title='Zysk / Strata'),
+                color=alt.Color('color:N', scale=alt.Scale(domain=['Zysk', 'Strata'], range=['green', 'red']), legend=None),
+                tooltip=['time', 'profit']
+            ).properties(
+                width=800,
+                height=400,
+                title='Zyski i straty z transakcji'
+            )
+
+            st.altair_chart(chart, use_container_width=True)
+    except KeyError:
         st.warning("Brak danych o transakcjach.")
-    else:
-        st.subheader("📊 Wykres zysków w czasie")
-        deals['time'] = deals['time'].dt.date
-        deals = deals.groupby(['time'])['profit'].agg('sum').reset_index()
-        deals['color'] = deals['profit'].apply(lambda x: 'Zysk' if x >= 0 else 'Strata')
-
-        chart = alt.Chart(deals).mark_bar(size=20).encode(
-            x=alt.X('time', title='Czas'),
-            y=alt.Y('profit:Q', title='Zysk / Strata'),
-            color=alt.Color('color:N', scale=alt.Scale(domain=['Zysk', 'Strata'], range=['green', 'red']), legend=None),
-            tooltip=['time', 'profit']
-        ).properties(
-            width=800,
-            height=400,
-            title='Zyski i straty z transakcji'
-        )
-
-        st.altair_chart(chart, use_container_width=True)
-
 
     logs = read_logs_from_db(limit=200)
     logs_joined = "\n".join(logs)
