@@ -11,8 +11,6 @@ import sys
 from src.settings_manager import get_sentiment, set_sentiment
 NEWS_API_KEY = "07f95978137e4cd0ba2236bff4e304ad"
 
-tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
-model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
 
 # Cache for news and sentiment scores
 news_cache = {}
@@ -95,6 +93,9 @@ def fetch_financial_news(symbol="EURUSD", max_articles=3):
 
 
 def analyze_sentiment(text):
+    tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+    model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+
     try:
         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
         outputs = model(**inputs)

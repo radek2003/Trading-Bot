@@ -206,13 +206,12 @@ if st.session_state.get("mt5_initialized", False):
     # Wszystkie elementy, które chcesz pokazać tylko po zalogowaniu
     st.header("🤖 Kontrola Trading Bot")
 
-    # Check current process status
     running, current_pid = is_main_py_running()
 
-    # Handle bot control logic
     if st.session_state.bot_should_run and not running:
-        # User wants bot to run but it's not running - try to start it
-        success, result = start_main_py()
+        with st.spinner("Uruchamianie..."):
+            success, result = start_main_py()
+            
         if success:
             st.session_state.bot_status_message = f"✅ Trading Bot uruchomiony (PID: {result})"
             st.session_state.last_known_pid = result
@@ -261,26 +260,34 @@ if st.session_state.get("mt5_initialized", False):
             st.session_state.bot_status_message = "🔄 Zatrzymywanie..."
             #st.experimental_rerun()
 
+
+    st.divider()
+    st.header('📋 Aktualny status systemu')
+    logs = read_logs_from_db(limit=200)
+    logs_joined = "\n".join(logs)
+    st.text_area("Logi", logs_joined, height=300, key="log_area", disabled=False)
     
+    st.sidebar.header("🔄 Czas odświeżania modelu")
     trading_reload_min = int(get_setting("trading_reload", 5))
-    trading_reload_min = st.number_input(
-        "Czas odświeżania danych (w minutach)", 
+    trading_reload_min = st.sidebar.number_input(
+        "(w minutach)", 
         min_value=1, max_value=1440, value=trading_reload_min, step=1, key="trading_reload_min"
     )
     
     # Zapisz ustawienie przy zmianie
-    if st.button("💾 Zapisz czas odświeżania"):
+    if st.sidebar.button("💾 Zapisz czas odświeżania"):
         set_setting("trading_reload", str(trading_reload_min))
         st.success("Zapisano czas odświeżania!")
     st_autorefresh(interval=3000, key="log_refresh")
 
     symbols = ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCHF"]
-
+    st.divider()
     st.title("🧠 Wprowadź sentymenty walut")
     st.subheader("Zostaną one wprowadzone jeśli będzie za mało artyków na temat danego symbolu")
 
     cols = st.columns(len(symbols))  # jedna kolumna na symbol
 
+    # UI do wyboru i zapisu sentymentów
     for i, symbol in enumerate(symbols):
         with cols[i]:
             choice = st.selectbox(
@@ -288,16 +295,25 @@ if st.session_state.get("mt5_initialized", False):
                 options=list(SENTIMENT_MAPPING.keys()),
                 key=f"sentiment_{symbol}"
             )
-            if st.button("Zapisz sentyment", key=symbol):
-                set_sentiment(symbol, SENTIMENT_MAPPING[choice])
-                st.success("Sentymenty!")
+            overwrite = st.checkbox("Nadpisz", key=f"overwrite_{symbol}")
 
-    
-    st.subheader("📌 Aktualne wartości sentymentów")
+            if st.button("Zapisz sentyment", key=f"save_sentiment_{symbol}"):
+                if overwrite:
+                    set_sentiment(symbol, SENTIMENT_MAPPING[choice])
+                    st.success(f"✅ Zapisano sentyment dla {symbol}")
+                else:
+                    st.warning(f"⚠️ Zaznacz 'Nadpisz', aby zapisać sentyment dla {symbol}")
+
+    st.divider()
+    st.subheader("📊 Aktualne sentymenty użytkownika")
+
+    #user_sentiments = get_user_sentiment()
 
     for symbol in symbols:
-        user_sentiment = get_sentiment(symbol)  # zakładam, że taka funkcja istnieje
-        st.markdown(f"**{symbol}**: {user_sentiment}")
+        val = get_sentiment(symbol)  
+        # Odwrócenie SENTIMENT_MAPPING jeśli chcesz pokazać nazwę zamiast liczby
+        #sentiment_name = next((k for k, v in SENTIMENT_MAPPING.items() if v == val), str(val))
+        st.markdown(f"**{symbol}**: {val}")
     
     st.sidebar.header("⚙️ Ustawienia LSTM")
     min_candles = st.sidebar.number_input("Minimalna liczba świec", min_value=10, value=int(get_setting("min_candles_for_patterns", "150")))
@@ -329,22 +345,27 @@ if st.session_state.get("mt5_initialized", False):
         set_setting("MAX_RISK_PER_TRADE", str(MAX_RISK_PER_TRADE))
         st.sidebar.success("Zapisano ustawienia!")
 
-    open_pos = get_open_positions()
-    open_pos_chart = open_pos.groupby(['symbol'])['profit'].agg('sum').reset_index()
-    open_pos_chart['color'] = open_pos_chart['profit'].apply(lambda x: 'Zysk' if x >= 0 else 'Strata')
-    
-    #st.bar_chart(open_pos_chart, x="symbol", y="profit", color = 'color')
-    fig = px.bar(open_pos_chart, x="profit", y="symbol", orientation='h', color='color',color_discrete_sequence=[
-        "#ff2b2b",
-        "#00ff51"
-    ])
-    
-
-    st.plotly_chart(fig)
+    st.divider()
+    st.subheader("📈📉 Aktualny stan pozycji")
+    try:
+        open_pos = get_open_positions()
+        open_pos_chart = open_pos.groupby(['symbol'])['profit'].agg('sum').reset_index()
+        open_pos_chart['color'] = open_pos_chart['profit'].apply(lambda x: 'Zysk' if x >= 0 else 'Strata')
+        
+        #st.bar_chart(open_pos_chart, x="symbol", y="profit", color = 'color')
+        fig = px.bar(open_pos_chart, x="profit", y="symbol", orientation='h', color='color',color_discrete_sequence=[
+            "#ff2b2b",
+            "#00ff51"
+        ])
+        st.plotly_chart(fig)
+    except KeyError:
+        st.warning("Brak danych o pozycjach.")
+        
     try:
         deals = fetch_full_trade_history(days_back=14)
         deals = deals.iloc[1:]
-        
+        symbol_deals = deals
+        #print(deals)
         if deals.empty:
             st.warning("Brak danych o transakcjach.")
         else:
@@ -363,13 +384,31 @@ if st.session_state.get("mt5_initialized", False):
                 height=400,
                 title='Zyski i straty z transakcji'
             )
-
             st.altair_chart(chart, use_container_width=True)
+            st.subheader("📊 Zyski i straty wg symboli")
+            
+            grouped = symbol_deals.groupby(['symbol', 'time'])['profit'].sum().reset_index()
+            #print(grouped)
+            grouped['color'] = grouped['profit'].apply(lambda x: 'Zysk' if x >= 0 else 'Strata')
+            symbols = grouped['symbol'].unique()
+            for symbol in symbols:
+                st.markdown(f"### 💱 {symbol}")
+                symbol_data = grouped[grouped['symbol'] == symbol]
+
+                chart = alt.Chart(symbol_data).mark_bar(size=20).encode(
+                    x=alt.X('time:T', title='Czas'),
+                    y=alt.Y('profit:Q', title='Zysk / Strata'),
+                    color=alt.Color('color:N',
+                                    scale=alt.Scale(domain=['Zysk', 'Strata'], range=['green', 'red']),
+                                    legend=None),
+                    tooltip=['time:T', 'profit']
+                ).properties(
+                    width=800,
+                    height=300,
+                    title=f'Zyski i straty - {symbol}'
+                )
+                st.altair_chart(chart, use_container_width=True)
     except KeyError:
         st.warning("Brak danych o transakcjach.")
-
-    logs = read_logs_from_db(limit=200)
-    logs_joined = "\n".join(logs)
-    st.text_area("Logi", logs_joined, height=600, key="log_area", disabled=False)
 else:
     st.info("🔐 Proszę się zalogować aby zobaczyć dane.")
