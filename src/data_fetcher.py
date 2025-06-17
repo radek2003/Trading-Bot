@@ -180,6 +180,19 @@ def test_trade_history(days_back=200):
     deals['time'] = pd.to_datetime(deals['time'], unit='s')
     return deals
 
+def get_open_positions():
+    
+    usd_positions=mt5.positions_get()
+    if usd_positions==None:
+        print("No positions with group=\"*USD*\", error code={}".format(mt5.last_error()))
+    elif len(usd_positions)>0:
+        # display these positions as a table using pandas.DataFrame
+        df=pd.DataFrame(list(usd_positions),columns=usd_positions[0]._asdict().keys())
+        df['time'] = pd.to_datetime(df['time'], unit='s')
+        df.drop(['time_update', 'time_msc', 'time_update_msc', 'external_id'], axis=1, inplace=True)
+        #print(df) 
+        
+    return df
 
 def fetch_full_trade_history(days_back=200):
     if not mt5.initialize():
